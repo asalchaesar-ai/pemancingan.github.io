@@ -164,6 +164,13 @@ b,strong{font-weight:700}
   font-size:13px;font-weight:600;
 }
 
+.alarm-banner{
+  margin-bottom:14px;border-radius:12px;padding:11px 14px;
+  font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;
+}
+.alarm-banner.warn{background:var(--amber-bg);color:var(--amber-ink);border:1px solid #fcd34d}
+.alarm-banner.over{background:var(--red-bg);color:var(--red-ink);border:1px solid #fca5a5}
+
 .sec-head{
   display:flex;align-items:center;justify-content:space-between;gap:8px;
   margin:22px 0 12px;
@@ -280,6 +287,7 @@ b,strong{font-weight:700}
   </div>
   <div class="top-right">
     <span class="clock-pill">🕒 <span id="topClock">--:--:--</span></span>
+    <button id="btnAudio" type="button" class="btn btn-ghost btn-sm" onclick="enableAndTestAudio()" title="Aktifkan &amp; uji suara alarm">🔊 Alarm</button>
     <button class="btn btn-primary btn-sm" onclick="openScanner()">📷 Scan QR / Barcode</button>
     <button id="btnBackList" class="btn btn-ghost btn-sm hidden" onclick="exitTicket()">← Daftar Sesi</button>
   </div>
@@ -324,6 +332,7 @@ b,strong{font-weight:700}
 
   <!-- Tampilan 2: Detail Tiket Pemancing Real-Time -->
   <section id="ticketView" class="hidden">
+    <div id="alarmBanner" class="alarm-banner hidden"></div>
     <div id="ticketCard" class="card ticket-card"></div>
   </section>
 </main>
@@ -343,6 +352,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
 const MIN = 60000;
+const FIVE_MIN_MS = 5 * MIN;
 const $ = s => document.querySelector(s);
 const pad = n => String(n).padStart(2, '0');
 const pad3 = n => String(n).padStart(3, '0');
@@ -373,6 +383,90 @@ let state = {
 };
 let ticker = null;
 let scanStream = null, scanRaf = null, scanDetector = null;
+
+/* ================= ALARM SUARA (menit.mp3 & habis.mp3) ================= */
+const alarmState = {
+  fiveMinPlayedKey: '',
+  expiredPlayedKey: '',
+  audioUnlocked: false,
+  audioMenit: new Audio('menit.mp3'),
+  audioHabis: new Audio('habis.mp3')
+};
+alarmState.audioMenit.preload = 'auto';
+alarmState.audioHabis.preload = 'auto';
+
+function playFallbackTone(isExpired) {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.type = isExpired ? 'sawtooth' : 'sine';
+    osc.frequency.setValueAtTime(isExpired ? 520 : 880, ctx.currentTime);
+    if (isExpired) {
+      osc.frequency.setValueAtTime(390, ctx.currentTime + 0.18);
+    }
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.45);
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.start();
+    osc.stop(ctx.currentTime + 0.46);
+  } catch (e) {}
+}
+
+function triggerAlarmFile(type) {
+  const player = type === 'habis' ? alarmState.audioHabis : alarmState.audioMenit;
+  try {
+    player.currentTime = 0;
+    const p = player.play();
+    if (p && typeof p.catch === 'function') {
+      p.catch(() => playFallbackTone(type === 'habis'));
+    }
+  } catch (e) {
+    playFallbackTone(type === 'habis');
+  }
+}
+
+window.enableAndTestAudio = function() {
+  alarmState.audioUnlocked = true;
+  $('#btnAudio').textContent = '🔔 Alarm Aktif';
+  triggerAlarmFile('menit');
+};
+
+function checkSessionAlarms(s) {
+  if (!s || s.status !== 'aktif' || !state.selectedId || s.id !== state.selectedId) {
+    return { level: '', text: '' };
+  }
+  const rem = remainMs(s);
+  const sessionKey = s.id + '|' + Number(s.durasiMenit || 0);
+
+  if (rem <= 0) {
+    alarmState.fiveMinPlayedKey = sessionKey;
+    if (alarmState.expiredPlayedKey !== sessionKey) {
+      alarmState.expiredPlayedKey = sessionKey;
+      triggerAlarmFile('habis');
+    }
+    return {
+      level: 'over',
+      text: '⏰ Waktu sesi memancing telah habis! Alarm habis.mp3 telah dibunyikan.'
+    };
+  }
+
+  if (rem <= FIVE_MIN_MS) {
+    if (alarmState.fiveMinPlayedKey !== sessionKey) {
+      alarmState.fiveMinPlayedKey = sessionKey;
+      triggerAlarmFile('menit');
+    }
+    return {
+      level: 'warn',
+      text: '⏳ Perhatian: Sisa waktu sesi 5 menit lagi! Alarm menit.mp3 telah dibunyikan.'
+    };
+  }
+
+  return { level: '', text: '' };
+}
 
 const kolamName = s => {
   const k = state.kolams.find(x => x.id === s.kolamId);
@@ -437,6 +531,7 @@ window.openTicketByCode = function(raw, silent = false) {
     return false;
   }
   $('#lookupErr').classList.add('hidden');
+  alarmState.audioUnlocked = true;
   state.selectedId = s.id;
   try {
     const u = new URL(window.location.href);
@@ -490,6 +585,18 @@ function renderActiveList() {
   }).join('');
 }
 
+function updateBannerUI(info) {
+  const banner = $('#alarmBanner');
+  if (!banner) return;
+  if (info && info.text) {
+    banner.className = 'alarm-banner ' + info.level;
+    banner.innerHTML = '<span>' + esc(info.text) + '</span><button type="button" class="btn btn-ghost btn-sm" onclick="triggerAlarmFile(\'' + (info.level === 'over' ? 'habis' : 'menit') + '\')">🔊 Putar Ulang</button>';
+  } else {
+    banner.className = 'alarm-banner hidden';
+    banner.innerHTML = '';
+  }
+}
+
 function renderTicketDetail() {
   const s = state.sessions.find(x => x.id === state.selectedId);
   if (!s) {
@@ -537,6 +644,12 @@ function renderTicketDetail() {
       + '<div style="font-size:12.5px;color:var(--muted)">' + (s.bayar && s.bayar.status === 'lunas' ? 'Sudah dibayar lunas' : 'Silakan lakukan pembayaran di kasir') + '</div></div>'
       + '<div class="amt money">' + fmtRp(s.total) + '</div>'
     + '</div>';
+
+  if (isAktif) {
+    updateBannerUI(checkSessionAlarms(s));
+  } else {
+    updateBannerUI({ level: '', text: '' });
+  }
 }
 
 function render() {
@@ -581,6 +694,13 @@ function tick() {
     const cls = timerClass(s);
     el.className = 'prog' + (cls === 'ok' ? '' : ' ' + cls);
   });
+
+  if (state.selectedId) {
+    const activeSel = state.sessions.find(x => x.id === state.selectedId);
+    if (activeSel && activeSel.status === 'aktif') {
+      updateBannerUI(checkSessionAlarms(activeSel));
+    }
+  }
 }
 
 /* ================= SCANNER KAMERA QR & BARCODE ================= */
@@ -599,6 +719,7 @@ window.closeScanner = function() {
 };
 
 window.openScanner = async function() {
+  alarmState.audioUnlocked = true;
   $('#modalRoot').innerHTML =
     '<div class="modal-overlay" onclick="if(event.target===this)closeScanner()">'
       + '<div class="modal">'
