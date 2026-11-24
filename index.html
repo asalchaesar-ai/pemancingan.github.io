@@ -3,60 +3,49 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Billing Kolam Pancing — Sistem Manajemen Spot &amp; Kasir</title>
-<meta name="description" content="Sistem manajemen billing kolam pancing per jam (kelipatan 30 menit) dengan panel kasir, admin, dan akses mandiri pemancing.">
+<title>Portal Pemancing — Cek Waktu &amp; Tagihan Real-Time</title>
+<meta name="description" content="Portal pemancing untuk memantau sisa waktu sesi, status pembayaran, dan tagihan memancing secara real-time melalui scan QR/barcode atau kode tiket.">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎣</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#f4f7f5;
   --surface:#ffffff;
   --surface-2:#f8faf9;
-  --surface-3:#eef3f0;
   --ink:#0f1f17;
   --ink-2:#33473c;
   --muted:#63776c;
   --line:#e2e9e5;
   --line-strong:#cbd7d0;
-  
   --primary:#0d7a43;
   --primary-hover:#096134;
   --primary-light:#e8f5ee;
   --primary-lighter:#f2faf6;
   --primary-ring:rgba(13,122,67,.16);
-  
   --amber:#d97706;
   --amber-bg:#fef3c7;
   --amber-ink:#92400e;
-  
   --red:#dc2626;
   --red-bg:#fee2e2;
   --red-ink:#991b1b;
-  
   --blue:#0284c7;
   --blue-bg:#e0f2fe;
-  
   --gray:#64748b;
   --gray-bg:#f1f5f9;
-  
-  --radius-sm:8px;
   --radius:14px;
   --radius-lg:20px;
   --radius-xl:24px;
-  
   --shadow-xs:0 1px 2px rgba(15,31,23,.04);
   --shadow-sm:0 2px 8px -2px rgba(15,31,23,.06),0 1px 3px rgba(15,31,23,.04);
-  --shadow:0 10px 25px -5px rgba(15,31,23,.07),0 4px 10px -4px rgba(15,31,23,.04);
-  --shadow-lg:0 24px 48px -12px rgba(15,31,23,.18);
-  
+  --shadow:0 12px 28px -6px rgba(15,31,23,.08),0 4px 10px -4px rgba(15,31,23,.04);
+  --shadow-lg:0 24px 48px -12px rgba(15,31,23,.2);
   --font-sans:'Plus Jakarta Sans',system-ui,-apple-system,sans-serif;
   --font-mono:'JetBrains Mono',ui-monospace,SFMono-Regular,monospace;
 }
-
 html{-webkit-text-size-adjust:100%;scroll-behavior:smooth}
 body{
   font-family:var(--font-sans);
@@ -66,11 +55,11 @@ body{
   min-height:100vh;
   background-color:var(--bg);
   background-image:
-    radial-gradient(at 0% 0%, rgba(13,122,67,0.06) 0px, transparent 50%),
-    radial-gradient(at 100% 100%, rgba(2,132,199,0.05) 0px, transparent 50%);
+    radial-gradient(at 0% 0%, rgba(13,122,67,0.07) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(2,132,199,0.06) 0px, transparent 50%);
   -webkit-font-smoothing:antialiased;
 }
-button,input,select,textarea{font-family:inherit}
+button,input{font-family:inherit}
 b,strong{font-weight:700}
 .hidden{display:none!important}
 .mono{font-family:var(--font-mono);font-variant-numeric:tabular-nums}
@@ -83,1805 +72,649 @@ b,strong{font-weight:700}
   padding:10px 16px;
   font-size:13px;
   text-align:center;
-  font-weight:500;
+  font-weight:600;
 }
 
-/* --- Tombol --- */
+.topbar{
+  position:sticky;top:0;z-index:20;
+  background:rgba(255,255,255,.9);
+  backdrop-filter:blur(12px);
+  border-bottom:1px solid var(--line);
+  height:62px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:0 20px;
+}
+.brand{display:flex;align-items:center;gap:11px;min-width:0}
+.brand .logo{
+  flex:0 0 auto;width:38px;height:38px;border-radius:11px;
+  background:linear-gradient(135deg,#108a4c,#085c31);
+  color:#fff;display:grid;place-items:center;font-size:19px;
+  box-shadow:0 4px 10px -2px rgba(13,122,67,.28);
+}
+.brand-text{display:flex;flex-direction:column;min-width:0}
+.brand-title{font-weight:800;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.2}
+.brand-sub{font-size:11.5px;color:var(--muted);font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.top-right{display:flex;align-items:center;gap:8px;flex:0 0 auto}
+.clock-pill{
+  display:none;align-items:center;gap:5px;
+  background:var(--surface-2);border:1px solid var(--line);
+  border-radius:8px;padding:5px 10px;
+  font-family:var(--font-mono);font-size:12px;font-weight:700;color:var(--ink-2);
+}
+@media(min-width:600px){.clock-pill{display:inline-flex}}
+
 .btn{
   display:inline-flex;align-items:center;justify-content:center;gap:7px;
   border:1px solid transparent;border-radius:10px;
-  padding:9px 16px;font-weight:600;font-size:13.5px;
-  cursor:pointer;white-space:nowrap;
-  transition:all .18s cubic-bezier(.16,1,.3,1);
-  user-select:none;
+  padding:9px 15px;font-weight:700;font-size:13.5px;
+  cursor:pointer;white-space:nowrap;transition:all .16s ease;user-select:none;
 }
 .btn:active{transform:scale(.98)}
 .btn-primary{
-  background:linear-gradient(180deg, #108a4c 0%, var(--primary) 100%);
-  color:#fff;
-  box-shadow:0 1px 2px rgba(0,0,0,.1), inset 0 1px 0 rgba(255,255,255,.15);
+  background:linear-gradient(180deg,#108a4c 0%,var(--primary) 100%);
+  color:#fff;box-shadow:0 2px 6px rgba(13,122,67,.22);
 }
-.btn-primary:hover{
-  background:linear-gradient(180deg, var(--primary) 0%, var(--primary-hover) 100%);
-  box-shadow:0 4px 12px rgba(13,122,67,.25);
-}
+.btn-primary:hover{background:linear-gradient(180deg,var(--primary) 0%,var(--primary-hover) 100%)}
 .btn-ghost{
-  background:var(--surface);
-  border-color:var(--line-strong);
-  color:var(--ink-2);
+  background:var(--surface);border-color:var(--line-strong);color:var(--ink-2);
   box-shadow:var(--shadow-xs);
 }
-.btn-ghost:hover{
-  background:var(--surface-2);
-  border-color:var(--primary);
-  color:var(--primary);
-}
-.btn-soft{
-  background:var(--primary-light);
-  color:var(--primary);
-  border-color:transparent;
-}
-.btn-soft:hover{background:#d7eee2}
-.btn-danger{
-  background:var(--red-bg);
-  color:var(--red-ink);
-  border-color:#fecaca;
-}
-.btn-danger:hover{background:#fecaca}
+.btn-ghost:hover{border-color:var(--primary);color:var(--primary);background:var(--surface-2)}
+.btn-soft{background:var(--primary-light);color:var(--primary)}
+.btn-soft:hover{background:#d6eee1}
+.btn-lg{padding:11px 18px;font-size:14px;border-radius:12px}
 .btn-sm{padding:6px 11px;font-size:12.5px;border-radius:8px}
-.btn-lg{padding:11px 20px;font-size:14.5px;border-radius:12px}
 .btn-block{width:100%}
 
-/* --- Badge & Status --- */
+.wrap{max-width:740px;margin:0 auto;padding:22px 16px 40px}
+.card{
+  background:var(--surface);border:1px solid var(--line);
+  border-radius:var(--radius-lg);box-shadow:var(--shadow);padding:24px;
+}
+.hero-head{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.hero-ico{
+  width:46px;height:46px;border-radius:14px;
+  background:linear-gradient(135deg,#108a4c,#085c31);
+  color:#fff;display:grid;place-items:center;font-size:22px;flex:0 0 auto;
+}
+.hero-venue{font-size:12px;font-weight:700;color:var(--primary)}
+.hero-title{font-size:1.35rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2}
+.hero-sub{color:var(--muted);font-size:13.5px;margin-bottom:18px}
+
+.scan-cta-box{
+  background:var(--primary-lighter);border:1.5px dashed #86cfa8;
+  border-radius:14px;padding:14px 16px;margin-bottom:18px;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
+}
+.scan-cta-copy b{display:block;font-size:14px;color:var(--ink)}
+.scan-cta-copy span{font-size:12.5px;color:var(--ink-2)}
+
+.search-row{display:flex;gap:8px;flex-wrap:wrap}
+.search-row input{
+  flex:1;min-width:190px;
+  border:1.5px solid var(--line-strong);border-radius:11px;
+  padding:11px 14px;font-size:14.5px;background:var(--surface);color:var(--ink);
+}
+.search-row input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3.5px var(--primary-ring)}
+
+.err-box{
+  margin-top:12px;background:var(--red-bg);color:var(--red-ink);
+  border:1px solid #fecaca;border-radius:10px;padding:10px 13px;
+  font-size:13px;font-weight:600;
+}
+
+.sec-head{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  margin:22px 0 12px;
+}
+.sec-head h2{font-size:15.5px;font-weight:800;display:flex;align-items:center;gap:7px}
+.dot{width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block;animation:pulse 1.6s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.85)}}
+
 .badge{
-  display:inline-flex;align-items:center;gap:5px;
-  border-radius:999px;padding:3px 10px;
-  font-size:11.5px;font-weight:700;letter-spacing:.01em;
-  white-space:nowrap;
+  display:inline-flex;align-items:center;gap:5px;border-radius:999px;
+  padding:3px 10px;font-size:11.5px;font-weight:700;white-space:nowrap;
 }
 .badge.green{background:var(--primary-light);color:var(--primary)}
 .badge.amber{background:var(--amber-bg);color:var(--amber-ink)}
 .badge.red{background:var(--red-bg);color:var(--red-ink)}
 .badge.gray{background:var(--gray-bg);color:var(--gray)}
-.badge.outline-green{background:var(--primary-lighter);border:1px solid #bce3ce;color:var(--primary)}
 
-.no-chip{
-  display:inline-flex;align-items:center;justify-content:center;
-  background:var(--ink);color:#fff;
-  border-radius:6px;padding:2px 7px;
-  font-family:var(--font-mono);font-weight:700;font-size:11.5px;
-  letter-spacing:.03em;white-space:nowrap;vertical-align:middle;margin-right:6px;
+.active-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+.active-item{
+  background:var(--surface);border:1px solid var(--line);border-radius:14px;
+  padding:14px 16px;text-align:left;cursor:pointer;transition:all .15s;
+  display:flex;flex-direction:column;gap:8px;box-shadow:var(--shadow-xs);
 }
-.no-chip.big{font-size:13px;padding:4px 10px;border-radius:8px}
+.active-item:hover{border-color:var(--primary);box-shadow:var(--shadow-sm);transform:translateY(-1px)}
+.item-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.item-name{font-weight:800;font-size:14.5px;color:var(--ink)}
+.item-sub{font-size:12px;color:var(--muted)}
+.item-bot{display:flex;justify-content:space-between;align-items:center;gap:8px;padding-top:4px;border-top:1px solid var(--line);font-size:12.5px}
 
-/* --- Kartu & Panel --- */
-.card{
-  background:var(--surface);
-  border:1px solid var(--line);
-  border-radius:var(--radius);
-  box-shadow:var(--shadow-sm);
-}
-.card-pad{padding:20px}
-.card-title{
-  font-size:15px;font-weight:700;color:var(--ink);
-  margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;gap:8px;
-}
-.empty{color:var(--muted);font-size:13.5px;padding:4px 0}
-.foot-note{color:var(--muted);font-size:12.5px;margin-top:12px}
+/* --- Kartu Detail Sesi Pemancing --- */
+.ticket-card{padding:24px;border-top:4px solid var(--primary)}
+.ticket-card.is-warn{border-top-color:var(--amber)}
+.ticket-card.is-over{border-top-color:var(--red)}
+.tk-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.tk-code{font-family:var(--font-mono);font-size:12.5px;font-weight:700;color:var(--muted)}
+.tk-angler{font-size:1.35rem;font-weight:800;letter-spacing:-0.01em;margin-top:2px}
+.tk-spot{font-size:13px;color:var(--ink-2);font-weight:600}
 
-/* --- Halaman Login --- */
-.login-wrap{
-  min-height:100vh;
-  display:flex;align-items:center;justify-content:center;
-  padding:24px 16px;
+.countdown-box{
+  background:var(--surface-2);border:1.5px solid var(--line);
+  border-radius:16px;padding:18px;text-align:center;margin-bottom:16px;
 }
-.login-card{
-  width:100%;max-width:440px;
-  padding:34px 30px;
-  border-radius:var(--radius-xl);
-  box-shadow:var(--shadow);
-  border:1px solid rgba(255,255,255,.8);
-}
-.login-brand{
-  display:flex;align-items:center;gap:12px;margin-bottom:16px;
-}
-.login-logo-box{
-  width:48px;height:48px;border-radius:14px;
-  background:linear-gradient(135deg, #108a4c, #085c31);
-  color:#fff;display:grid;place-items:center;font-size:24px;
-  box-shadow:0 8px 16px -4px rgba(13,122,67,.3);
-}
-.login-card h1{font-size:1.45rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2}
-.login-venue{font-size:12.5px;color:var(--primary);font-weight:600}
-.login-sub{color:var(--muted);font-size:13.5px;margin:0 0 20px}
-.login-err{
-  background:var(--red-bg);color:var(--red-ink);
-  padding:10px 14px;border-radius:10px;
-  font-size:13px;margin-bottom:14px;font-weight:600;
-  border:1px solid #fecaca;
-}
-.login-demo{
-  display:flex;gap:8px;align-items:center;flex-wrap:wrap;
-  background:var(--surface-2);padding:10px 12px;border-radius:12px;border:1px solid var(--line);
-  font-size:12.5px;color:var(--muted);margin-top:16px;
-}
-.demo-chip{
-  border:1px solid var(--line-strong);background:var(--surface);
-  padding:5px 11px;border-radius:8px;cursor:pointer;
-  font-size:12.5px;font-weight:600;color:var(--ink-2);
-  transition:all .15s;
-}
-.demo-chip:hover{border-color:var(--primary);color:var(--primary);background:var(--primary-lighter)}
-
-/* --- Kerangka Aplikasi Utama --- */
-.topbar{
-  position:sticky;top:0;z-index:30;
-  background:rgba(255,255,255,.88);
-  backdrop-filter:blur(12px);
-  -webkit-backdrop-filter:blur(12px);
-  border-bottom:1px solid var(--line);
-  height:62px;
-  display:flex;align-items:center;justify-content:space-between;gap:12px;
-  padding:0 24px;
-}
-.brand{display:flex;align-items:center;gap:12px;min-width:0}
-.brand .logo{
-  flex:0 0 auto;width:38px;height:38px;border-radius:11px;
-  background:linear-gradient(135deg, #108a4c, #085c31);
-  display:grid;place-items:center;font-size:19px;
-  box-shadow:0 4px 10px -2px rgba(13,122,67,.28);
-}
-.brand-text{display:flex;flex-direction:column;min-width:0}
-.brand-title{font-weight:800;font-size:15.5px;letter-spacing:-0.01em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
-.brand-sub{font-size:11.5px;color:var(--muted);font-weight:500;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-
-.top-right{display:flex;align-items:center;gap:10px;flex:0 0 auto}
-.clock-pill{
-  display:none;align-items:center;gap:6px;
-  background:var(--surface-2);border:1px solid var(--line);
-  border-radius:8px;padding:5px 10px;
-  font-family:var(--font-mono);font-size:12.5px;font-weight:700;color:var(--ink-2);
-}
-@media(min-width:640px){.clock-pill{display:inline-flex}}
-.user-chip{
-  background:var(--primary-light);color:var(--primary);
-  border:1px solid #cce8d8;
-  border-radius:8px;padding:5px 11px;font-size:12.5px;font-weight:700;
-}
-
-.shell{
-  display:grid;grid-template-columns:240px minmax(0,1fr);
-  max-width:1360px;margin:0 auto;min-height:calc(100vh - 62px);
-}
-.nav{
-  position:sticky;top:62px;align-self:start;
-  display:flex;flex-direction:column;gap:4px;
-  padding:20px 14px 20px 20px;
-}
-.nav-label{
-  font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;
-  color:var(--muted);padding:0 12px 6px;
-}
-.nav button{
-  display:flex;align-items:center;gap:11px;width:100%;
-  padding:10px 13px;border-radius:10px;border:none;
-  background:transparent;font-size:14px;font-weight:600;
-  color:var(--muted);cursor:pointer;text-align:left;
-  transition:all .15s;
-}
-.nav button:hover{background:var(--surface);color:var(--ink)}
-.nav button.active{
-  background:var(--surface);color:var(--primary);
-  box-shadow:var(--shadow-xs);border:1px solid var(--line);
-}
-.nav button .nav-ico{font-size:16px;width:20px;text-align:center}
-
-.main{padding:22px 24px 36px;min-width:0}
-.foot{
-  max-width:1360px;margin:0 auto;padding:12px 24px 28px;
-  color:var(--muted);font-size:12px;border-top:1px solid var(--line);
-  display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
-}
-
-@media(max-width:900px){
-  .topbar{padding:0 14px}
-  .shell{grid-template-columns:1fr}
-  .nav{
-    position:sticky;top:62px;z-index:25;
-    flex-direction:row;overflow-x:auto;
-    padding:10px 14px;gap:8px;
-    background:rgba(244,247,245,.94);backdrop-filter:blur(8px);
-    border-bottom:1px solid var(--line);
-  }
-  .nav-label{display:none}
-  .nav button{width:auto;flex:0 0 auto;border:1px solid var(--line);background:var(--surface);padding:8px 13px}
-  .nav button.active{border-color:var(--primary);background:var(--primary-lighter)}
-  .main{padding:16px 14px 28px}
-}
-
-/* --- Header Halaman & KPI Cards --- */
-.page-head{
-  display:flex;justify-content:space-between;align-items:flex-end;
-  gap:12px;flex-wrap:wrap;margin-bottom:18px;
-}
-.page-head h2{font-size:1.4rem;font-weight:800;letter-spacing:-0.02em;line-height:1.2}
-.page-head .sub{color:var(--muted);font-size:13px;margin-top:3px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
-
-.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
-.stat{
-  padding:16px 18px;position:relative;overflow:hidden;
-  display:flex;flex-direction:column;justify-content:space-between;
-}
-.stat-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
-.stat .k{font-size:12.5px;color:var(--muted);font-weight:600}
-.stat-ico{
-  width:32px;height:32px;border-radius:9px;
-  background:var(--surface-2);border:1px solid var(--line);
-  display:grid;place-items:center;font-size:15px;
-}
-.stat .v{font-size:1.5rem;font-weight:800;letter-spacing:-0.02em;color:var(--ink);line-height:1.15}
-.stat .s{font-size:12px;color:var(--muted);margin-top:6px;font-weight:500}
-
-.row-gap{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-.dot{width:8px;height:8px;border-radius:50%;background:var(--primary);display:inline-block;animation:pulse 1.6s infinite}
-@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.35;transform:scale(.85)}}
-
-/* --- Papan Kolam (Grid Spot) --- */
-.board-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(285px,1fr));gap:16px}
-.kolam-card{
-  display:flex;flex-direction:column;justify-content:space-between;gap:12px;
-  padding:18px;transition:transform .18s ease, box-shadow .18s ease;
-  border-top:3px solid var(--line-strong);
-}
-.kolam-card:hover{box-shadow:var(--shadow)}
-.kolam-card.is-avail{border-top-color:var(--primary)}
-.kolam-card.is-active{border-top-color:var(--blue)}
-.kolam-card.is-warn{border-top-color:var(--amber)}
-.kolam-card.is-over{border-top-color:var(--red);background:linear-gradient(180deg, #fffafa 0%, #ffffff 40%)}
-.kolam-card.is-maint{border-top-color:var(--gray);opacity:.85;background:var(--surface-2)}
-
-.kolam-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
-.kolam-name{font-weight:800;font-size:16px;letter-spacing:-0.01em;color:var(--ink)}
-.kolam-sub{font-size:12.5px;color:var(--muted);line-height:1.4}
-.tarif-tag{
-  flex:0 0 auto;background:var(--surface-2);border:1px solid var(--line);
-  border-radius:8px;padding:4px 9px;font-size:12px;font-weight:700;color:var(--ink-2);white-space:nowrap;
-}
-
-.angler-box{
-  background:var(--surface-2);border:1px solid var(--line);
-  border-radius:10px;padding:10px 12px;
-  display:flex;justify-content:space-between;align-items:center;gap:8px;
-}
-.timer-box{
-  background:var(--surface-2);border-radius:12px;padding:12px 14px;
-  border:1px solid var(--line);
-}
-.timer-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-bottom:2px}
-.timer{
-  font-family:var(--font-mono);
-  font-size:1.75rem;font-weight:800;letter-spacing:.02em;line-height:1.15;
-}
+.cd-lbl{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin-bottom:4px}
+.timer{font-family:var(--font-mono);font-size:2.3rem;font-weight:800;line-height:1.1}
 .timer.ok{color:var(--primary)}.timer.warn{color:var(--amber)}.timer.over{color:var(--red)}
 .timer-inline{font-family:var(--font-mono);font-weight:700}
 .timer-inline.ok{color:var(--primary)}.timer-inline.warn{color:var(--amber)}.timer-inline.over{color:var(--red)}
-
-.prog{height:6px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:8px}
+.prog{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:12px}
 .prog i{display:block;height:100%;border-radius:99px;background:var(--primary);transition:width 1s linear}
 .prog.warn i{background:var(--amber)}.prog.over i{background:var(--red)}
 
-.kolam-meta{
-  display:flex;justify-content:space-between;align-items:center;
-  font-size:13px;padding-top:2px;
-}
-.kolam-actions{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-top:2px}
-.kolam-actions .span2{grid-column:span 2}
-
-/* --- Tabel Profesional --- */
-.table-scroll{
-  overflow-x:auto;border:1px solid var(--line);border-radius:var(--radius);
-  background:var(--surface);box-shadow:var(--shadow-xs);
-}
-table{border-collapse:collapse;width:100%;min-width:660px;font-size:13.5px}
-th{
-  background:var(--surface-2);text-align:left;padding:11px 14px;
-  font-size:11.5px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
-  color:var(--muted);border-bottom:1px solid var(--line);white-space:nowrap;
-}
-td{padding:12px 14px;border-bottom:1px solid var(--line);vertical-align:middle;white-space:nowrap}
-tr:last-child td{border-bottom:none}
-tbody tr{transition:background .12s}
-tbody tr:hover{background:var(--primary-lighter)}
-.cell-main{font-weight:700;color:var(--ink)}
-.cell-sub{font-size:12px;color:var(--muted);margin-top:1px}
-
-/* --- Chip & Form --- */
-.chip-row{display:flex;flex-wrap:wrap;gap:8px}
-.chip{
-  padding:8px 14px;border-radius:9px;
-  border:1.5px solid var(--line-strong);background:var(--surface);
-  font-weight:700;font-size:13px;cursor:pointer;color:var(--ink-2);
-  transition:all .15s;
-}
-.chip:hover{border-color:var(--primary);color:var(--primary)}
-.chip.on{background:var(--primary-light);border-color:var(--primary);color:var(--primary)}
-.chip-status{
-  display:inline-flex;align-items:center;gap:8px;
+.info-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:12px 16px;
   background:var(--surface-2);border:1px solid var(--line);
-  border-radius:10px;padding:7px 12px;font-size:13px;font-weight:600;
+  border-radius:14px;padding:15px;font-size:13.5px;
 }
+@media(max-width:480px){.info-grid{grid-template-columns:1fr}}
+.info-grid .k{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.info-grid .v{font-weight:700;color:var(--ink);margin-top:2px}
 
-.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
-.field label{font-size:13px;font-weight:700;color:var(--ink-2)}
-.field input,.field select,.field textarea{
-  border:1.5px solid var(--line-strong);border-radius:10px;
-  padding:10px 13px;font-size:14px;background:var(--surface);color:var(--ink);
-  width:100%;transition:border-color .15s, box-shadow .15s;
+.bill-banner{
+  margin-top:14px;background:var(--primary-lighter);border:1.5px solid #bce3ce;
+  border-radius:14px;padding:14px 16px;
+  display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;
 }
-.field textarea{resize:vertical}
-.field input:focus,.field select:focus,.field textarea:focus{
-  outline:none;border-color:var(--primary);box-shadow:0 0 0 3.5px var(--primary-ring);
-}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:0 14px}
-@media(max-width:540px){.grid2{grid-template-columns:1fr}}
+.bill-banner .amt{font-size:1.35rem;font-weight:800;color:var(--primary)}
 
-.filter-bar{
-  display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;
-  background:var(--surface);padding:14px 16px;border-radius:var(--radius);
-  border:1px solid var(--line);margin-bottom:14px;box-shadow:var(--shadow-xs);
-}
-.filter-bar .field{margin-bottom:0;min-width:155px}
-.filter-bar .grow{flex:1;min-width:200px}
+.empty{color:var(--muted);font-size:13.5px}
 
-.setelan-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:16px}
-@media(max-width:900px){.setelan-grid{grid-template-columns:1fr}}
-
-/* --- Grafik Batang Modern --- */
-.chart{display:flex;gap:12px;padding:12px 4px 2px}
-.chart .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;min-width:0}
-.bar-area{
-  height:155px;width:100%;display:flex;align-items:flex-end;justify-content:center;
-  background:var(--surface-2);border-radius:10px;padding:8px 4px 0;
-}
-.bar{
-  width:min(70%,42px);border-radius:7px 7px 2px 2px;
-  background:linear-gradient(180deg, #16a34a 0%, var(--primary) 100%);
-  transition:height .4s ease;
-}
-.bar-today{
-  background:linear-gradient(180deg, #0284c7 0%, #0369a1 100%);
-  box-shadow:0 4px 12px rgba(2,132,199,.25);
-}
-.bar-val{font-size:11.5px;font-weight:700;color:var(--ink-2);white-space:nowrap}
-.bar-label{font-size:11.5px;color:var(--muted);font-weight:600;white-space:nowrap}
-
-/* --- Ringkasan Tagihan & Opsi --- */
-.total-line{
-  display:flex;justify-content:space-between;align-items:center;gap:12px;
-  background:var(--primary-lighter);border:1.5px solid #bce3ce;
-  border-radius:12px;padding:14px 16px;margin-top:6px;
-}
-.total-line .lbl{font-size:13px;color:var(--ink-2);font-weight:600;line-height:1.4}
-.total-line .amt{font-size:1.35rem;font-weight:800;color:var(--primary);white-space:nowrap}
-
-.opt-card{
-  border:1.5px solid var(--line-strong);border-radius:12px;
-  padding:13px 15px;cursor:pointer;margin-bottom:9px;
-  transition:all .15s;background:var(--surface);
-}
-.opt-card:hover{border-color:var(--primary)}
-.opt-card.on{border-color:var(--primary);background:var(--primary-lighter);box-shadow:0 0 0 3px var(--primary-ring)}
-.opt-card .t{display:flex;justify-content:space-between;gap:8px;font-weight:700;font-size:14px;color:var(--ink)}
-.opt-card .d{font-size:12.5px;color:var(--muted);margin-top:3px}
-
-/* --- Modal --- */
+/* --- Modal Scanner Kamera --- */
 .modal-overlay{
-  position:fixed;inset:0;
-  background:rgba(15,31,23,.52);
-  backdrop-filter:blur(4px);
-  -webkit-backdrop-filter:blur(4px);
-  display:flex;align-items:center;justify-content:center;
-  padding:16px;z-index:50;
-  animation:fadeIn .15s ease;
+  position:fixed;inset:0;background:rgba(15,31,23,.65);
+  backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;
+  padding:16px;z-index:60;
 }
-@keyframes fadeIn{from{opacity:0}to{opacity:1}}
 .modal{
-  background:var(--surface);border-radius:var(--radius-lg);
-  max-width:520px;width:100%;max-height:92vh;overflow:auto;
-  padding:24px;box-shadow:var(--shadow-lg);
-  border:1px solid var(--line);
-  animation:slideUp .2s cubic-bezier(.16,1,.3,1);
+  background:var(--surface);border:1px solid var(--line);border-radius:var(--radius-lg);
+  max-width:460px;width:100%;padding:22px;box-shadow:var(--shadow-lg);
 }
-@keyframes slideUp{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
-.modal.wide{max-width:min(900px,95vw)}
-.modal h3{font-size:18px;font-weight:800;letter-spacing:-0.01em;margin-bottom:4px}
-.modal-sub{color:var(--muted);font-size:13px;margin-bottom:16px}
-.modal-actions{display:flex;gap:9px;justify-content:flex-end;flex-wrap:wrap;margin-top:20px;padding-top:14px;border-top:1px solid var(--line)}
+.modal h3{font-size:17px;font-weight:800;margin-bottom:4px}
+.modal-sub{font-size:13px;color:var(--muted);margin-bottom:14px}
+.cam-box{
+  position:relative;width:100%;aspect-ratio:4/3;border-radius:14px;
+  overflow:hidden;background:#0a0f0c;border:2px solid var(--line-strong);
+}
+.cam-box video{width:100%;height:100%;object-fit:cover;display:block}
+.cam-frame{
+  position:absolute;inset:16%;border:2.5px solid #22c55e;border-radius:12px;
+  box-shadow:0 0 0 999px rgba(0,0,0,.35);pointer-events:none;
+}
+.cam-status{
+  margin-top:10px;font-size:12.5px;font-weight:600;color:var(--ink-2);
+  background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:9px 12px;
+}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
 
-.detail-grid{
-  display:grid;grid-template-columns:1fr 1fr;gap:12px 18px;
-  background:var(--surface-2);padding:16px;border-radius:12px;border:1px solid var(--line);
-  font-size:13.5px;
-}
-@media(max-width:520px){.detail-grid{grid-template-columns:1fr}}
-.detail-grid .k{color:var(--muted);font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.03em;margin-bottom:2px}
-.detail-grid .v{font-weight:700;color:var(--ink)}
-
-/* --- Toast Notifikasi --- */
-.toast-wrap{
-  position:fixed;bottom:20px;right:20px;
-  display:flex;flex-direction:column;gap:8px;z-index:80;
-  width:min(92vw,390px);
-}
-@media(max-width:540px){.toast-wrap{right:50%;transform:translateX(50%)}}
-.toast{
-  background:var(--ink);color:#fff;padding:12px 16px;
-  border-radius:12px;font-size:13.5px;font-weight:600;
-  box-shadow:0 12px 28px -8px rgba(0,0,0,.35);
-  display:flex;gap:9px;align-items:center;
-  animation:toastIn .22s cubic-bezier(.16,1,.3,1);
-}
-.toast.ok{background:#0b5e34;border:1px solid #15803d}
-.toast.err{background:#991b1b;border:1px solid #dc2626}
-@keyframes toastIn{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-
-/* --- Tiket Sesi: Strip 21cm x 6cm (Print-Ready) dengan QR Code Asli --- */
-.tiket{position:relative;display:flex;flex-direction:column;background:#fff;border:3px solid #000;border-radius:12px;width:210mm;height:60mm;color:#000;overflow:hidden;box-shadow:0 8px 30px -18px rgba(0,0,0,.35);margin:0 auto;padding-right:26mm;font-family:'Segoe UI',Arial,sans-serif}
-.tiket-body{display:flex;flex:1;min-height:0;gap:3mm;padding:2.2mm 3mm 0 4mm}
-.tiket-main{flex:1.05;min-width:0;display:flex;flex-direction:column}
-.tiket-fields{flex:1;min-width:0;display:flex;flex-direction:column;gap:1.4mm;border-left:2px dotted #000;padding-left:4mm}
-.tk-head{display:flex;align-items:flex-start;gap:2.5mm}
-.tk-logo{flex:0 0 21mm}
-.tk-titlewrap{flex:1;min-width:0}
-.tk-arch{display:block;width:100%;height:auto}
-.tk-sub{display:flex;align-items:center;gap:2mm;margin:.8mm 8mm 0}
-.tk-sub i{flex:0 0 6mm;height:2px;background:#000;border-radius:1px}
-.tk-sub b{font-size:8px;font-weight:900;letter-spacing:.3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tk-fish{flex:0 0 12mm}
-.tk-times{display:flex;flex-direction:column;gap:1.4mm;margin-top:1.2mm}
-.tk-time{border:2px solid #000;border-radius:8px;overflow:hidden}
-.tk-time-h{background:#000;color:#fff;text-align:center;font-weight:900;font-size:8.5px;padding:.5mm;letter-spacing:.3px}
-.tk-time-b{padding:.6mm 2.5mm 1mm;font-weight:700;font-size:10px;display:flex;gap:2mm;align-items:flex-end;flex-wrap:wrap;row-gap:.6mm}
-.tk-time-b>span{flex:0 0 auto}
-.tk-dots{flex:1;min-width:8mm;border-bottom:1.5px dotted #000;font-weight:800;padding:0 1mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tk-row{display:flex;align-items:flex-end;gap:1.5mm}
-.tk-lab{flex:0 0 25mm;font-weight:800;font-size:10.5px;white-space:nowrap}
-.tk-col{font-weight:900;font-size:10.5px}
-.tk-val{flex:1;min-width:0;border-bottom:1.5px dotted #000;font-weight:800;font-size:11px;padding:0 1mm;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tk-note{font-size:8px;font-weight:700;line-height:1.4;margin-top:auto;padding-top:1mm}
-.tk-foot{display:flex;gap:3mm;justify-content:space-between;align-items:center;border-top:2px dotted #000;margin:1.6mm 3mm 2.2mm 4mm;padding-top:1.2mm;font-weight:800;font-size:10px;white-space:nowrap;overflow:hidden}
-.tk-pay{border:1.5px solid #000;border-radius:6px;padding:.5mm 2.5mm;font-weight:900;white-space:nowrap}
-.tiket-stub{position:absolute;top:0;right:0;bottom:0;width:26mm;border-left:2px dashed #000;display:flex;flex-direction:column;align-items:center;justify-content:space-between;padding:2.5mm 1.5mm;text-align:center}
-.tk-qr-lbl{font-size:7px;font-weight:900;letter-spacing:.3px;text-transform:uppercase;line-height:1.2}
-.tk-qr-box{width:20mm;height:20mm;display:flex;align-items:center;justify-content:center}
-.tk-qr-box svg{width:100%;height:100%;display:block}
-.tk-kode{font-size:7.5px;font-weight:900;letter-spacing:.4px;white-space:nowrap;font-family:var(--font-mono)}
-.tk-notch{position:absolute;left:-2.2mm;width:4.5mm;height:4.5mm;background:#fff;border:3px solid #000;border-radius:50%}
-.tk-notch.top{top:-3mm}.tk-notch.bot{top:auto;bottom:-3mm}
-
-/* --- Format Cetak Laporan Resmi --- */
-.rpt-print{
-  background:#fff;color:#0f172a;font-family:'Plus Jakarta Sans',Arial,sans-serif;
-  padding:14mm 16mm;max-width:210mm;margin:0 auto;font-size:12px;line-height:1.45;
-}
-.rpt-head{
-  display:flex;justify-content:space-between;align-items:flex-start;gap:14px;
-  border-bottom:2.5px solid #0f172a;padding-bottom:10px;margin-bottom:14px;
-}
-.rpt-venue{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;color:#0d7a43}
-.rpt-title{font-size:18px;font-weight:800;letter-spacing:-0.01em;margin:2px 0}
-.rpt-period{font-size:12px;color:#334155;font-weight:600}
-.rpt-meta-box{text-align:right;font-size:11px;color:#475569;line-height:1.5}
-.rpt-kpis{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;
-}
-.rpt-kpi{
-  border:1.5px solid #cbd5e1;border-radius:8px;padding:8px 10px;background:#f8fafc;
-}
-.rpt-kpi .k{font-size:10px;font-weight:700;text-transform:uppercase;color:#64748b;letter-spacing:.03em}
-.rpt-kpi .v{font-size:14.5px;font-weight:800;color:#0f172a;margin:2px 0}
-.rpt-kpi .s{font-size:10.5px;color:#475569}
-.rpt-sec{margin-top:13px}
-.rpt-sec-title{
-  font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;
-  color:#0f172a;margin-bottom:6px;padding-bottom:3px;border-bottom:1px solid #cbd5e1;
-}
-.rpt-table{width:100%;border-collapse:collapse;font-size:11px}
-.rpt-table th{
-  background:#f1f5f9;color:#0f172a;font-weight:800;text-align:left;
-  padding:6px 8px;border:1px solid #cbd5e1;font-size:10px;text-transform:uppercase;
-}
-.rpt-table td{padding:5.5px 8px;border:1px solid #cbd5e1;vertical-align:top}
-.rpt-table tr:nth-child(even) td{background:#fafafa}
-.rpt-table tfoot td{background:#f1f5f9;font-weight:800;border-top:1.5px solid #94a3b8}
-.rpt-num{text-align:right;font-variant-numeric:tabular-nums}
-.rpt-sign{
-  display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:22px;
-  break-inside:avoid;page-break-inside:avoid;
-}
-.rpt-sign-box{text-align:center;font-size:11px}
-.rpt-sign-line{margin-top:46px;border-top:1px solid #0f172a;padding-top:4px;font-weight:700}
-
-/* --- Print Styles --- */
-.print-only{display:none}
-@media print{
-  body>*{display:none!important}
-  #printRoot{display:block!important}
-  body{background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  @page{size:210mm 297mm;margin:0}
-  .tiket{box-shadow:none;break-inside:avoid;page-break-inside:avoid}
-  .rpt-print{box-shadow:none;padding:12mm 14mm;max-width:100%}
-  .rpt-table tr{break-inside:avoid;page-break-inside:avoid}
+.foot{
+  max-width:740px;margin:0 auto;padding:14px 16px 28px;
+  border-top:1px solid var(--line);color:var(--muted);font-size:12px;
+  display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;
 }
 </style>
 </head>
 <body>
 <div id="configWarn" class="store-warn hidden">⚠️ <b>Konfigurasi Firebase belum diisi!</b> Buka file <code>firebase-config.js</code> dan masukkan kredensial proyek Firebase Anda.</div>
-<div id="toast" class="toast-wrap"></div>
 
-<!-- ===== HALAMAN MASUK (LOGIN) ===== -->
-<div id="login" class="login-wrap">
-  <div class="login-card card">
-    <div class="login-brand">
-      <div class="login-logo-box">🎣</div>
-      <div>
-        <div id="loginVenue" class="login-venue">Taman Wisata Mata Air Ciburial</div>
-        <h1 id="loginTitle">Billing Kolam Pancing</h1>
-      </div>
-    </div>
-    <p class="login-sub">Sistem manajemen billing sewa spot per jam (kelipatan 30 menit). Silakan masuk menggunakan akun kasir atau administrator.</p>
-    <form id="loginForm" autocomplete="off">
-      <div class="field"><label>Email Petugas</label><input id="inUser" type="email" placeholder="Contoh: kasir@ciburial.com" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" required></div>
-      <div class="field"><label>Password</label><input id="inPass" type="password" placeholder="••••••••" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false" required></div>
-      <div id="loginErr" class="login-err hidden">Email atau password tidak sesuai.</div>
-      <button id="btnLogin" class="btn btn-primary btn-lg btn-block" type="submit">Masuk ke Sistem</button>
-    </form>
-    <div class="login-demo">
-      <span>Isi cepat email:</span>
-      <button type="button" class="demo-chip" data-u="admin@ciburial.com">🔐 Admin</button>
-      <button type="button" class="demo-chip" data-u="kasir@ciburial.com">💵 Kasir</button>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">🎣</span>
+    <div class="brand-text">
+      <span id="brandName" class="brand-title">Portal Pemancing</span>
+      <span id="brandVenue" class="brand-sub">Taman Wisata Mata Air Ciburial</span>
     </div>
   </div>
-</div>
-
-<!-- ===== KERANGKA APLIKASI UTAMA ===== -->
-<div id="app" class="hidden">
-  <header class="topbar">
-    <div class="brand">
-      <span class="logo">🎣</span>
-      <div class="brand-text">
-        <span id="brandName" class="brand-title">Billing Kolam Pancing</span>
-        <span id="brandVenue" class="brand-sub">Taman Wisata Mata Air Ciburial</span>
-      </div>
-    </div>
-    <div class="top-right">
-      <span class="clock-pill">🕒 <span id="topClock">--:--:--</span></span>
-      <span id="userChip" class="user-chip"></span>
-      <button class="btn btn-ghost btn-sm" onclick="openHelp()" title="Panduan sistem">❓ Panduan</button>
-      <button class="btn btn-ghost btn-sm" onclick="logout()">Keluar</button>
-    </div>
-  </header>
-  <div class="shell">
-    <nav id="nav" class="nav"></nav>
-    <main id="main" class="main"></main>
+  <div class="top-right">
+    <span class="clock-pill">🕒 <span id="topClock">--:--:--</span></span>
+    <button class="btn btn-primary btn-sm" onclick="openScanner()">📷 Scan QR / Barcode</button>
+    <button id="btnBackList" class="btn btn-ghost btn-sm hidden" onclick="exitTicket()">← Daftar Sesi</button>
   </div>
-  <footer class="foot">
-    <span>☁️ Cloud Database Aktif (Firebase Firestore Real-Time)</span>
-    <span id="footVenue">Taman Wisata Mata Air Ciburial</span>
-  </footer>
-</div>
+</header>
+
+<main class="wrap">
+  <!-- Tampilan 1: Masuk / Cari Tiket -->
+  <section id="lookupView">
+    <div class="card">
+      <div class="hero-head">
+        <div class="hero-ico">🎟️</div>
+        <div>
+          <div id="heroVenue" class="hero-venue">Taman Wisata Mata Air Ciburial</div>
+          <h1 id="heroTitle" class="hero-title">Cek Waktu &amp; Tagihan Sesi</h1>
+        </div>
+      </div>
+      <p class="hero-sub">Scan QR Code / Barcode pada tiket memancing Anda atau masukkan kode tiket untuk memantau sisa waktu secara real-time.</p>
+
+      <div class="scan-cta-box">
+        <div class="scan-cta-copy">
+          <b>📷 Masuk Cepat dengan Scan QR / Barcode</b>
+          <span>Arahkan kamera ke kode QR di tiket atau scan langsung dari kamera HP bawaan.</span>
+        </div>
+        <button type="button" class="btn btn-primary" onclick="openScanner()">Buka Kamera Scan</button>
+      </div>
+
+      <form id="codeForm" class="search-row" autocomplete="off">
+        <input id="codeInput" type="text" placeholder="Masukkan kode tiket, misal: FP-261124-001" autocapitalize="characters" spellcheck="false" required>
+        <button class="btn btn-ghost btn-lg" type="submit">Cari Tiket</button>
+      </form>
+      <div id="lookupErr" class="err-box hidden"></div>
+    </div>
+
+    <div class="sec-head">
+      <h2><span class="dot"></span> Sesi Sedang Berjalan</h2>
+      <span id="activeCountBadge" class="badge green">0 Aktif</span>
+    </div>
+    <div id="activeList" class="active-list">
+      <div class="card" style="padding:18px"><p class="empty">⏳ Memuat sesi aktif dari Firebase Firestore...</p></div>
+    </div>
+  </section>
+
+  <!-- Tampilan 2: Detail Tiket Pemancing Real-Time -->
+  <section id="ticketView" class="hidden">
+    <div id="ticketCard" class="card ticket-card"></div>
+  </section>
+</main>
 
 <div id="modalRoot"></div>
-<div id="printRoot" class="print-only"></div>
+
+<footer class="foot">
+  <span>☁️ Sinkronisasi Real-Time (Firebase Firestore)</span>
+  <span id="footVenue">Taman Wisata Mata Air Ciburial</span>
+</footer>
 
 <script src="firebase-config.js"></script>
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
 import {
-  getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
-import {
-  getFirestore, collection, doc, setDoc, updateDoc, deleteDoc,
-  onSnapshot, writeBatch
+  getFirestore, collection, doc, onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore.js";
 
-/* ================= UTILITAS ================= */
-const MIN=60000, JAM=3600000, HARI=86400000;
-const $=s=>document.querySelector(s);
-const pad=n=>String(n).padStart(2,'0');
-const pad3=n=>String(n).padStart(3,'0');
-const fmtRp=n=>'Rp '+Math.round(n).toLocaleString('id-ID');
-const fmtShort=n=>{n=Math.round(n);if(n>=1e6)return (n/1e6).toFixed(1).replace('.',',')+' jt';if(n>=1e3)return Math.round(n/1e3)+' rb';return String(n)};
-const fmtDur=m=>{const h=Math.floor(m/60),mm=m%60;if(h&&mm)return h+' j '+mm+' m';if(h)return h+' jam';return mm+' menit'};
-const jamMenit=ts=>{const d=new Date(ts);return pad(d.getHours())+':'+pad(d.getMinutes())};
-const tglPanjang=ts=>new Date(ts).toLocaleDateString('id-ID',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
-const ymd=ts=>{const d=new Date(ts);return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())};
-const sameDay=(a,b)=>ymd(a)===ymd(b);
-const startToday=()=>{const d=new Date();d.setHours(0,0,0,0);return d.getTime()};
-const priceOf=(tarif,men)=>Math.round(tarif*men/60);
-const usedRounded=m=>Math.max(30,Math.ceil(m/30)*30);
-const esc=v=>String(v==null?'':v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const normKode=v=>String(v||'').trim().toUpperCase().replace(/[^A-Z0-9]/g,'');
-
-/* ================= STATE & INISIALISASI KOSONG FIREBASE ================= */
-let db={
-  settings:{
-    appName:'Billing Kolam Pancing',
-    tarifDefault:25000,
-    operatorName:'Kasir',
-    venueName:'Taman Wisata Mata Air Ciburial'
-  },
-  kolams:[],
-  sessions:[]
+const MIN = 60000;
+const $ = s => document.querySelector(s);
+const pad = n => String(n).padStart(2, '0');
+const pad3 = n => String(n).padStart(3, '0');
+const fmtRp = n => 'Rp ' + Math.round(n || 0).toLocaleString('id-ID');
+const fmtDur = m => {
+  m = Number(m || 0);
+  const h = Math.floor(m / 60), mm = m % 60;
+  if (h && mm) return h + ' j ' + mm + ' m';
+  if (h) return h + ' jam';
+  return mm + ' menit';
 };
-let me=null, view=null, ticker=null;
-let unsubs=[];
-let dataReady={settings:false,kolams:false,sessions:false};
-const riwayatFilter={tanggal:'',status:'',cari:''};
-const laporanFilter={mode:'mingguan',tanggal:'',bulan:''};
+const jamMenit = ts => {
+  if (!ts) return '-';
+  const d = new Date(ts);
+  return pad(d.getHours()) + ':' + pad(d.getMinutes());
+};
+const esc = v => String(v == null ? '' : v).replace(/[&<>"']/g, c => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+}[c]));
+const normKode = v => String(v || '').trim().toUpperCase().replace(/[^A-Z0-9]/g, '');
 
-async function initEmptyFirestore(clearAll=false){
-  if(!fsDb)return;
-  const batch=writeBatch(fsDb);
-  if(clearAll){
-    db.kolams.forEach(k=>batch.delete(doc(fsDb,'kolams',k.id)));
-    db.sessions.forEach(s=>batch.delete(doc(fsDb,'sessions',s.id)));
+let state = {
+  settings: { appName: 'Portal Pemancing', venueName: 'Taman Wisata Mata Air Ciburial' },
+  kolams: [],
+  sessions: [],
+  selectedId: null,
+  ready: false
+};
+let ticker = null;
+let scanStream = null, scanRaf = null, scanDetector = null;
+
+const kolamName = s => {
+  const k = state.kolams.find(x => x.id === s.kolamId);
+  return k ? k.nama : (s.kolamNama || '-');
+};
+const pemNo = s => {
+  const n = parseInt(String(s && s.kode || '').split('-').pop(), 10);
+  return isNaN(n) ? '—' : pad3(n);
+};
+const elapsedMs = s => (s.status === 'aktif' ? Date.now() : (s.selesai || Date.now())) - s.mulai;
+const remainMs = s => (s.durasiMenit || 0) * MIN - elapsedMs(s);
+const fmtJam = ms => {
+  ms = Math.abs(ms);
+  const t = Math.floor(ms / 1000);
+  return pad(Math.floor(t / 3600)) + ':' + pad(Math.floor(t % 3600 / 60)) + ':' + pad(t % 60);
+};
+const timerClass = s => remainMs(s) < 0 ? 'over' : remainMs(s) <= 10 * MIN ? 'warn' : 'ok';
+const timerText = s => {
+  const r = remainMs(s);
+  return (r < 0 ? '+' : '') + fmtJam(r);
+};
+function fmtTangkapan(t) {
+  if (!t) return '-';
+  const parts = [];
+  if (t.jenis && t.jenis !== '-') parts.push(t.jenis);
+  if (t.jumlah > 0) parts.push(t.jumlah + ' ekor');
+  if (t.berat > 0) parts.push(String(t.berat).replace('.', ',') + ' kg');
+  return parts.length ? parts.join(' · ') : '-';
+}
+
+function extractKodeFromScan(raw) {
+  const txt = String(raw || '').trim();
+  if (!txt) return '';
+  try {
+    if (txt.includes('?')) {
+      const url = new URL(txt);
+      const qKode = url.searchParams.get('kode');
+      if (qKode) return normKode(qKode);
+    }
+  } catch (e) {}
+  const match = txt.match(/FP[-_ ]?\d{6}[-_ ]?\d{3}/i);
+  return normKode(match ? match[0] : txt);
+}
+
+function findSessionByInput(raw) {
+  const q = extractKodeFromScan(raw);
+  if (!q) return null;
+  return state.sessions.find(s =>
+    normKode(s.kode) === q ||
+    normKode(s.kodeNorm) === q ||
+    String(s.id || '').toUpperCase() === q
+  ) || null;
+}
+
+window.openTicketByCode = function(raw, silent = false) {
+  const s = findSessionByInput(raw);
+  if (!s) {
+    if (!silent) {
+      $('#lookupErr').textContent = 'Kode tiket "' + String(raw || '').trim() + '" tidak ditemukan. Pastikan kode sesuai tiket.';
+      $('#lookupErr').classList.remove('hidden');
+    }
+    return false;
   }
-  batch.set(doc(fsDb,'settings','main'),{
-    appName:'Billing Kolam Pancing',
-    tarifDefault:25000,
-    operatorName:'Kasir',
-    venueName:'Taman Wisata Mata Air Ciburial'
-  },{merge:true});
-  await batch.commit();
-}
-
-/* ================= HELPERS SESI ================= */
-const byId=id=>db.sessions.find(s=>s.id===id);
-const kolamById=id=>db.kolams.find(k=>k.id===id);
-const kolamName=id=>{const k=kolamById(id);if(k)return k.nama;const s=db.sessions.find(x=>x.kolamId===id&&x.kolamNama);return s?s.kolamNama+' (Dihapus)':'-'};
-const activeByKolam=id=>db.sessions.find(s=>s.status==='aktif'&&s.kolamId===id);
-const elapsedMs=s=>(s.status==='aktif'?Date.now():s.selesai)-s.mulai;
-const remainMs=s=>s.durasiMenit*MIN-elapsedMs(s);
-const fmtJam=ms=>{ms=Math.abs(ms);const t=Math.floor(ms/1000);return pad(Math.floor(t/3600))+':'+pad(Math.floor(t%3600/60))+':'+pad(t%60)};
-const timerClass=s=>remainMs(s)<0?'over':remainMs(s)<=10*MIN?'warn':'ok';
-const timerText=s=>{const r=remainMs(s);return (r<0?'+':'')+fmtJam(r)};
-const payBadge=s=>s.bayar&&s.bayar.status==='lunas'?'<span class="badge green">✓ Lunas</span>':'<span class="badge amber">● Belum lunas</span>';
-function fmtTangkapan(t){
-  if(!t)return '';
-  const parts=[];
-  if(t.jenis&&t.jenis!=='-')parts.push(t.jenis);
-  if(t.jumlah>0)parts.push(t.jumlah+' ekor');
-  if(t.berat>0)parts.push(String(t.berat).replace('.',',')+' kg');
-  return parts.join(' · ');
-}
-const statusBadge=s=>s.status==='aktif'?'<span class="badge green">● Berjalan</span>':s.status==='selesai'?'<span class="badge gray">Selesai</span>':'<span class="badge red">Dibatalkan</span>';
-
-function pendapatanHariIni(){
-  const t0=startToday();let lunas=0,belum=0;
-  db.sessions.forEach(s=>{if(s.status==='dibatalkan'||!sameDay(s.mulai,t0))return;if(s.bayar&&s.bayar.status==='lunas')lunas+=s.total;else belum+=s.total});
-  return{lunas:lunas,belum:belum};
-}
-const stat=(k,v,s,ico)=>'<div class="stat card"><div class="stat-top"><div class="k">'+k+'</div>'+(ico?'<div class="stat-ico">'+ico+'</div>':'')+'</div><div><div class="v">'+v+'</div>'+(s?'<div class="s">'+s+'</div>':'')+'</div></div>';
-function makeKode(ts){
-  const n=db.sessions.filter(x=>ymd(x.mulai)===ymd(ts)).length+1;
-  return 'FP-'+ymd(ts).slice(2).replace(/-/g,'')+'-'+pad3(n);
-}
-function pemNo(s){const n=parseInt(String(s&&s.kode||'').split('-').pop(),10);return isNaN(n)?'—':pad3(n)}
-
-/* ================= NAVIGASI & REAL-TIME SYNC ================= */
-const NAV={
-  admin:[['monitor','📡','Monitoring'],['kolam','🗺️','Kelola Kolam'],['riwayat','🧾','Riwayat Sesi'],['laporan','📊','Laporan'],['setelan','⚙️','Pengaturan']],
-  kasir:[['board','🐟','Papan Kolam'],['riwayat','🧾','Riwayat Transaksi']]
-};
-function buildNav(){
-  const roleLabel=me.role==='admin'?'Menu Administrator':'Menu Operasional';
-  $('#nav').innerHTML='<div class="nav-label">'+roleLabel+'</div>'+NAV[me.role].map(n=>'<button data-v="'+n[0]+'" class="'+(view===n[0]?'active':'')+'" onclick="go(\''+n[0]+'\')"><span class="nav-ico">'+n[1]+'</span><span>'+n[2]+'</span></button>').join('');
-}
-window.go=function(v){view=v;buildNav();render()};
-function syncBranding(){
-  const s=db.settings;
-  const venue=s.venueName||'Taman Wisata Mata Air Ciburial';
-  $('#brandName').textContent=s.appName;
-  $('#brandVenue').textContent=venue;
-  $('#loginTitle').textContent=s.appName;
-  $('#loginVenue').textContent=venue;
-  $('#footVenue').textContent=venue;
-}
-
-function attachRealtimeListeners(){
-  detachListeners();
-  dataReady={settings:false,kolams:false,sessions:false};
-
-  unsubs.push(onSnapshot(doc(fsDb,'settings','main'),async (snap)=>{
-    if(snap.exists()){
-      Object.assign(db.settings,snap.data());
-      syncBranding();
-    }else if(!dataReady.settings){
-      try{await initEmptyFirestore(false)}catch(e){console.error(e)}
-    }
-    dataReady.settings=true;
-    if(me)render();
-  },(err)=>{
-    console.error('Settings listener err:',err);
-    toast('Gagal membaca pengaturan dari Firestore: '+err.message,'err');
-  }));
-
-  unsubs.push(onSnapshot(collection(fsDb,'kolams'),(snap)=>{
-    db.kolams=snap.docs.map(d=>({id:d.id,...d.data()})).sort((a,b)=>a.id.localeCompare(b.id));
-    dataReady.kolams=true;
-    if(me)render();
-  }));
-
-  unsubs.push(onSnapshot(collection(fsDb,'sessions'),(snap)=>{
-    db.sessions=snap.docs.map(d=>({id:d.id,...d.data()}));
-    dataReady.sessions=true;
-    if(me)render();
-  }));
-}
-
-function detachListeners(){
-  unsubs.forEach(fn=>{try{fn()}catch(e){}});
-  unsubs=[];
-}
-
-function enterApp(){
-  $('#login').classList.add('hidden');$('#app').classList.remove('hidden');
-  syncBranding();
-  $('#userChip').textContent=(me.role==='admin'?'🔐 ':'💵 ')+me.label;
-  view=me.role==='admin'?'monitor':'board';
-  buildNav();
+  $('#lookupErr').classList.add('hidden');
+  state.selectedId = s.id;
+  try {
+    const u = new URL(window.location.href);
+    u.searchParams.set('kode', s.kode);
+    window.history.replaceState({}, '', u.toString());
+  } catch (e) {}
   render();
-  startTicker();
-  attachRealtimeListeners();
-}
-
-window.logout=async function(){
-  stopTicker();detachListeners();me=null;closeModal();
-  if(fsAuth){try{await signOut(fsAuth)}catch(e){}}
-  $('#app').classList.add('hidden');$('#login').classList.remove('hidden');
+  return true;
 };
 
-function startTicker(){stopTicker();ticker=setInterval(tick,1000);tick()}
-function stopTicker(){if(ticker){clearInterval(ticker);ticker=null}}
-function tick(){
-  const nowStr=jamMenit(Date.now())+':'+pad(new Date().getSeconds());
-  const tc=$('#topClock');if(tc)tc.textContent=nowStr;
-  const lc=$('#liveClock');if(lc)lc.textContent=nowStr;
+window.exitTicket = function() {
+  state.selectedId = null;
+  try {
+    const u = new URL(window.location.href);
+    u.searchParams.delete('kode');
+    window.history.replaceState({}, '', u.toString());
+  } catch (e) {}
+  render();
+};
 
-  document.querySelectorAll('[data-timer]').forEach(el=>{
-    const s=byId(el.getAttribute('data-timer'));
-    if(!s||s.status!=='aktif')return;
-    const cls=timerClass(s);
-    el.textContent=timerText(s);
-    el.className=el.getAttribute('data-big')==='1'?'timer '+cls:'timer-inline '+cls;
-    const card=el.closest('.kolam-card');
-    if(card){
-      card.classList.remove('is-active','is-warn','is-over');
-      card.classList.add(cls==='over'?'is-over':cls==='warn'?'is-warn':'is-active');
-    }
-  });
-  document.querySelectorAll('[data-prog]').forEach(el=>{
-    const s=byId(el.getAttribute('data-prog'));
-    if(!s||s.status!=='aktif')return;
-    const bar=el.querySelector('i');
-    if(bar)bar.style.width=Math.min(100,elapsedMs(s)/(s.durasiMenit*MIN)*100)+'%';
-    const cls=timerClass(s);
-    el.className='prog'+(cls==='ok'?'':' '+cls);
-  });
-}
+function renderActiveList() {
+  const aktif = state.sessions
+    .filter(s => s.status === 'aktif')
+    .sort((a, b) => a.mulai - b.mulai);
+  $('#activeCountBadge').textContent = aktif.length + ' Aktif';
 
-function render(){
-  const m=$('#main');
-  if(!me||!m)return;
-  if(!dataReady.kolams&&!dataReady.sessions){
-    m.innerHTML='<div class="card card-pad"><p class="empty">⏳ Memuat data real-time dari Firebase Firestore...</p></div>';
+  if (!state.ready) {
+    $('#activeList').innerHTML = '<div class="card" style="padding:18px"><p class="empty">⏳ Memuat sesi aktif dari Firebase Firestore...</p></div>';
     return;
   }
-  if(view==='board')m.innerHTML=vBoard();
-  else if(view==='monitor')m.innerHTML=vMonitor();
-  else if(view==='kolam')m.innerHTML=vKolamAdmin();
-  else if(view==='riwayat')m.innerHTML=vRiwayat();
-  else if(view==='laporan')m.innerHTML=vLaporan();
-  else if(view==='setelan')m.innerHTML=vSetelan();
+  if (!aktif.length) {
+    $('#activeList').innerHTML = '<div class="card" style="padding:18px"><p class="empty">Belum ada sesi aktif saat ini.</p></div>';
+    return;
+  }
+  $('#activeList').innerHTML = aktif.map(s => {
+    const cls = timerClass(s);
+    const pay = s.bayar && s.bayar.status === 'lunas'
+      ? '<span class="badge green">✓ Lunas</span>'
+      : '<span class="badge amber">● Belum lunas</span>';
+    return '<button type="button" class="active-item" onclick="openTicketByCode(\'' + esc(s.kode) + '\')">'
+      + '<div class="item-top">'
+        + '<div><div class="item-name">No. ' + pemNo(s) + ' · ' + esc(s.pemancing) + '</div>'
+        + '<div class="item-sub">' + esc(kolamName(s)) + ' · <span class="mono">' + esc(s.kode) + '</span></div></div>'
+        + pay
+      + '</div>'
+      + '<div class="item-bot">'
+        + '<span>Sisa: <span class="timer-inline ' + cls + '" data-timer="' + s.id + '">' + timerText(s) + '</span></span>'
+        + '<b class="money">' + fmtRp(s.total) + '</b>'
+      + '</div>'
+    + '</button>';
+  }).join('');
+}
+
+function renderTicketDetail() {
+  const s = state.sessions.find(x => x.id === state.selectedId);
+  if (!s) {
+    state.selectedId = null;
+    render();
+    return;
+  }
+  const isAktif = s.status === 'aktif';
+  const cls = isAktif ? timerClass(s) : '';
+  const pct = Math.min(100, Math.max(0, elapsedMs(s) / ((s.durasiMenit || 30) * MIN) * 100));
+  const statusB = isAktif
+    ? '<span class="badge green">● Berjalan</span>'
+    : s.status === 'selesai'
+      ? '<span class="badge gray">Selesai</span>'
+      : '<span class="badge red">Dibatalkan</span>';
+  const payB = s.bayar && s.bayar.status === 'lunas'
+    ? '<span class="badge green">✓ Lunas</span>'
+    : '<span class="badge amber">● Belum lunas</span>';
+
+  $('#ticketCard').className = 'card ticket-card' + (isAktif && cls !== 'ok' ? ' is-' + cls : '');
+  $('#ticketCard').innerHTML =
+    '<div class="tk-top">'
+      + '<div><div class="tk-code">KODE TIKET: ' + esc(s.kode) + ' · NO. PEMANCING ' + pemNo(s) + '</div>'
+      + '<div class="tk-angler">' + esc(s.pemancing) + '</div>'
+      + '<div class="tk-spot">🐟 ' + esc(kolamName(s)) + ' · Tarif ' + fmtRp(s.tarifJam) + '/jam</div></div>'
+      + '<div style="display:flex;gap:6px;flex-wrap:wrap">' + statusB + payB + '</div>'
+    + '</div>'
+    + '<div class="countdown-box">'
+      + '<div class="cd-lbl">' + (isAktif ? (cls === 'over' ? 'Kelebihan Waktu Sesi' : 'Sisa Waktu Memancing') : 'Status Sesi') + '</div>'
+      + '<div class="timer ' + cls + '" ' + (isAktif ? 'data-timer="' + s.id + '"' : '') + '>'
+        + (isAktif ? timerText(s) : (s.status === 'selesai' ? 'SELESAI' : 'DIBATALKAN'))
+      + '</div>'
+      + '<div class="prog ' + (cls === 'ok' ? '' : cls) + '" ' + (isAktif ? 'data-prog="' + s.id + '"' : '') + '><i style="width:' + pct + '%"></i></div>'
+    + '</div>'
+    + '<div class="info-grid">'
+      + '<div><div class="k">Waktu Mulai</div><div class="v mono">' + jamMenit(s.mulai) + '</div></div>'
+      + '<div><div class="k">Waktu Selesai</div><div class="v mono">' + (isAktif ? 'Sedang berjalan' : jamMenit(s.selesai)) + '</div></div>'
+      + '<div><div class="k">Durasi Paket</div><div class="v">' + fmtDur(s.durasiMenit) + '</div></div>'
+      + '<div><div class="k">Durasi Ditagih</div><div class="v">' + fmtDur(s.tagihMenit) + '</div></div>'
+      + '<div><div class="k">Hasil Tangkapan</div><div class="v">' + esc(fmtTangkapan(s.tangkapan)) + '</div></div>'
+      + '<div><div class="k">Catatan</div><div class="v">' + esc(s.catatan || '-') + '</div></div>'
+    + '</div>'
+    + '<div class="bill-banner">'
+      + '<div><div style="font-size:12px;color:var(--ink-2);font-weight:700">TOTAL TAGIHAN</div>'
+      + '<div style="font-size:12.5px;color:var(--muted)">' + (s.bayar && s.bayar.status === 'lunas' ? 'Sudah dibayar lunas' : 'Silakan lakukan pembayaran di kasir') + '</div></div>'
+      + '<div class="amt money">' + fmtRp(s.total) + '</div>'
+    + '</div>';
+}
+
+function render() {
+  $('#brandName').textContent = state.settings.appName || 'Portal Pemancing';
+  $('#heroTitle').textContent = state.settings.appName || 'Cek Waktu & Tagihan Sesi';
+  const venue = state.settings.venueName || 'Taman Wisata Mata Air Ciburial';
+  $('#brandVenue').textContent = venue;
+  $('#heroVenue').textContent = venue;
+  $('#footVenue').textContent = venue;
+
+  if (state.selectedId) {
+    $('#lookupView').classList.add('hidden');
+    $('#ticketView').classList.remove('hidden');
+    $('#btnBackList').classList.remove('hidden');
+    renderTicketDetail();
+  } else {
+    $('#ticketView').classList.add('hidden');
+    $('#lookupView').classList.remove('hidden');
+    $('#btnBackList').classList.add('hidden');
+    renderActiveList();
+  }
   tick();
 }
 
-/* ================= TAMPILAN: KASIR ================= */
-function kolamCard(k){
-  const s=activeByKolam(k.id);
-  const head='<div class="kolam-head"><div><div class="kolam-name">'+esc(k.nama)+'</div><div class="kolam-sub">'+esc(k.jenis)+'</div></div><span class="tarif-tag money">'+fmtRp(k.tarif)+'/jam</span></div>';
-  let body='', stateCls='is-avail';
-  if(k.status==='maintenance'){
-    stateCls='is-maint';
-    body='<div><span class="badge gray">🔧 Dalam Perawatan</span><div class="kolam-sub" style="margin-top:8px">'+esc(k.deskripsi)+'</div></div>';
-  }else if(!s){
-    stateCls='is-avail';
-    body='<div><span class="badge outline-green">● Spot Tersedia</span><div class="kolam-sub" style="margin-top:8px">'+esc(k.deskripsi)+'</div></div>'
-      +'<button class="btn btn-primary btn-block" onclick="openStart(\''+k.id+'\')">▶ Mulai Sesi Baru</button>';
-  }else{
-    const cls=timerClass(s);
-    stateCls=cls==='over'?'is-over':cls==='warn'?'is-warn':'is-active';
-    let alert='';
-    if(cls==='over')alert='<span class="badge red">⏰ Lewat waktu — perpanjang / akhiri</span>';
-    else if(cls==='warn')alert='<span class="badge amber">⏳ Sisa waktu ≤ 10 menit</span>';
-    const pct=Math.min(100,elapsedMs(s)/(s.durasiMenit*MIN)*100);
-    body='<div class="angler-box"><div><div class="cell-main"><span class="no-chip">No. '+pemNo(s)+'</span>'+esc(s.pemancing)+'</div><div class="cell-sub mono">'+s.kode+' · '+jamMenit(s.mulai)+' ('+fmtDur(s.durasiMenit)+')</div></div>'+payBadge(s)+'</div>'
-      +'<div class="timer-box"><div class="timer-label">'+(cls==='over'?'Kelebihan Waktu':'Sisa Waktu Sesi')+'</div>'
-      +'<div class="timer '+cls+'" data-timer="'+s.id+'" data-big="1">'+timerText(s)+'</div>'
-      +'<div class="prog'+(cls==='ok'?'':' '+cls)+'" data-prog="'+s.id+'"><i style="width:'+pct+'%"></i></div></div>'
-      +(alert||'')
-      +'<div class="kolam-meta"><span class="kolam-sub">Total Tagihan</span><b class="money" style="font-size:15px">'+fmtRp(s.total)+'</b></div>'
-      +'<div class="kolam-actions">'
-      +'<button class="btn btn-ghost btn-sm" onclick="openExtend(\''+s.id+'\')">⏩ Perpanjang</button>'
-      +'<button class="btn btn-danger btn-sm" onclick="openStop(\''+s.id+'\')">⏹ Akhiri</button>'
-      +(s.bayar&&s.bayar.status==='belum'?'<button class="btn btn-primary btn-sm" onclick="openBayar(\''+s.id+'\')">💵 Bayar</button><button class="btn btn-ghost btn-sm" onclick="openStruk(\''+s.id+'\')">🎟️ Tiket</button>':'<button class="btn btn-ghost btn-sm span2" onclick="openStruk(\''+s.id+'\')">🎟️ Cetak Tiket</button>')
-      +'</div>';
-  }
-  return '<div class="card kolam-card '+stateCls+'">'+head+body+'</div>';
-}
-function vBoard(){
-  const aktif=db.sessions.filter(s=>s.status==='aktif');
-  const kolamAktif=db.kolams.filter(k=>k.status==='aktif');
-  const pay=pendapatanHariIni();
-  const kontenKolam=db.kolams.length
-    ?'<div class="board-grid">'+db.kolams.map(kolamCard).join('')+'</div>'
-    :'<div class="card card-pad"><p class="empty">Belum ada spot kolam yang terdaftar. Silakan masuk sebagai <b>Admin</b> ke menu <b>Kelola Kolam</b> untuk menambahkan kolam.</p></div>';
-  return '<div class="page-head"><div><h2>Papan Operasional Kolam</h2><div class="sub">'+tglPanjang(Date.now())+'</div></div>'
-    +'<button class="btn btn-primary" onclick="openStart()">＋ Mulai Sesi Baru</button></div>'
-    +'<div class="stat-grid" style="margin-bottom:18px">'
-    +stat('Sesi Berjalan',aktif.length+' sesi',(kolamAktif.length-aktif.length)+' spot siap digunakan','⏱️')
-    +stat('Okupansi Kolam',aktif.length+' / '+kolamAktif.length,kolamAktif.length?Math.round(aktif.length/kolamAktif.length*100)+'% kapasitas terisi':'','🐟')
-    +stat('Kas Tunai (Lunas)','<span class="money">'+fmtRp(pay.lunas)+'</span>','Penerimaan hari ini','💵')
-    +stat('Tagihan Berjalan / Bon','<span class="money">'+fmtRp(pay.belum)+'</span>','Menunggu pelunasan','🧾')
-    +'</div>'
-    +kontenKolam;
-}
+function tick() {
+  const now = new Date();
+  const clockEl = $('#topClock');
+  if (clockEl) clockEl.textContent = pad(now.getHours()) + ':' + pad(now.getMinutes()) + ':' + pad(now.getSeconds());
 
-/* ================= TAMPILAN: ADMIN ================= */
-function vMonitor(){
-  const aktif=db.sessions.filter(s=>s.status==='aktif').slice().sort((a,b)=>a.mulai-b.mulai);
-  const pay=pendapatanHariIni();
-  const t0=startToday();
-  const todayS=db.sessions.filter(s=>s.mulai>=t0&&s.status!=='dibatalkan');
-  const done=todayS.filter(s=>s.status==='selesai').sort((a,b)=>b.selesai-a.selesai);
-  const jamTerjual=(todayS.reduce((a,s)=>a+(s.tagihMenit||0),0)/60).toFixed(1).replace('.',',');
-  const kolamAktif=db.kolams.filter(k=>k.status==='aktif');
-  const okup=kolamAktif.length?Math.round(aktif.length/kolamAktif.length*100):0;
-
-  const rowsAktif=aktif.map(s=>{
-    const cls=timerClass(s);
-    return '<tr><td><div class="cell-main mono">'+s.kode+'</div></td><td>'+esc(kolamName(s.kolamId))+'</td><td><span class="no-chip">No. '+pemNo(s)+'</span><b>'+esc(s.pemancing)+'</b></td><td>'+jamMenit(s.mulai)+'</td>'
-      +'<td><span class="timer-inline '+cls+'" data-timer="'+s.id+'">'+timerText(s)+'</span></td>'
-      +'<td><b class="money">'+fmtRp(s.total)+'</b></td><td>'+payBadge(s)+'</td>'
-      +'<td><button class="btn btn-ghost btn-sm" onclick="openDetail(\''+s.id+'\')">Detail</button></td></tr>';
-  }).join('');
-
-  const rowsDone=done.map(s=>
-    '<tr><td><div class="cell-main mono">'+s.kode+'</div><div class="cell-sub">selesai '+jamMenit(s.selesai)+'</div></td><td>'+esc(kolamName(s.kolamId))+'</td><td><span class="no-chip">No. '+pemNo(s)+'</span><b>'+esc(s.pemancing)+'</b></td>'
-    +'<td>'+fmtDur(s.tagihMenit)+'</td><td>'+(s.tangkapan?'<span class="badge outline-green">🐟 '+esc(fmtTangkapan(s.tangkapan))+'</span>':'<span class="cell-sub">-</span>')+'</td><td><b class="money">'+fmtRp(s.total)+'</b></td><td>'+payBadge(s)+'</td>'
-    +'<td><button class="btn btn-ghost btn-sm" onclick="openStruk(\''+s.id+'\')">🎟️ Tiket</button></td></tr>').join('');
-
-  const chips=db.kolams.map(k=>{
-    const occ=activeByKolam(k.id);
-    const b=k.status==='maintenance'?'<span class="badge gray">Perawatan</span>':occ?'<span class="badge green">Terisi · No. '+pemNo(occ)+'</span>':'<span class="badge outline-green">Tersedia</span>';
-    return '<span class="chip-status">'+esc(k.nama)+' '+b+'</span>';
-  }).join('');
-
-  return '<div class="page-head"><div><h2>Monitoring Live</h2><div class="sub">'+tglPanjang(Date.now())+' · <span class="dot"></span> Cloud Firestore Real-Time · <b id="liveClock" class="mono">'+jamMenit(Date.now())+'</b></div></div></div>'
-    +'<div class="stat-grid">'
-    +stat('Omzet Hari Ini','<span class="money">'+fmtRp(pay.lunas+pay.belum)+'</span>','Lunas '+fmtShort(pay.lunas)+' · Bon '+fmtShort(pay.belum),'💰')
-    +stat('Sesi Berjalan',aktif.length+' sesi','Aktif di lapangan','⏱️')
-    +stat('Okupansi Spot',okup+'%',aktif.length+' dari '+kolamAktif.length+' kolam aktif','📊')
-    +stat('Sesi Selesai',done.length+' sesi',jamTerjual+' jam sewa terjual','✅')
-    +'</div>'
-    +'<div class="card card-pad" style="margin-top:16px"><div class="card-title"><span>⏱️ Sesi Sedang Berjalan</span><span class="badge green">'+aktif.length+' Aktif</span></div>'
-    +(aktif.length?'<div class="table-scroll"><table><thead><tr><th>Kode Sesi</th><th>Kolam</th><th>Pemancing</th><th>Mulai</th><th>Sisa Waktu</th><th>Tagihan</th><th>Status Bayar</th><th>Aksi</th></tr></thead><tbody>'+rowsAktif+'</tbody></table></div>':'<p class="empty">Belum ada sesi yang berjalan saat ini.</p>')
-    +'</div>'
-    +'<div class="card card-pad" style="margin-top:16px"><div class="card-title"><span>✅ Sesi Selesai Hari Ini</span><span class="badge gray">'+done.length+' Sesi</span></div>'
-    +(done.length?'<div class="table-scroll"><table><thead><tr><th>Kode Sesi</th><th>Kolam</th><th>Pemancing</th><th>Durasi Tagih</th><th>Tangkapan</th><th>Total</th><th>Status Bayar</th><th>Aksi</th></tr></thead><tbody>'+rowsDone+'</tbody></table></div>':'<p class="empty">Belum ada sesi yang selesai hari ini.</p>')
-    +'</div>'
-    +'<div class="card card-pad" style="margin-top:16px"><div class="card-title"><span>🐟 Ringkasan Status Kolam</span></div>'+(chips?'<div class="chip-row">'+chips+'</div>':'<p class="empty">Belum ada kolam terdaftar. Tambahkan spot kolam di menu <b>Kelola Kolam</b>.</p>')+'</div>';
-}
-
-function vKolamAdmin(){
-  const rows=db.kolams.map(k=>{
-    const occ=activeByKolam(k.id);
-    return '<tr><td><div class="cell-main">'+esc(k.nama)+'</div><div class="cell-sub">'+esc(k.deskripsi)+'</div></td>'
-      +'<td>'+esc(k.jenis)+'</td><td><b class="money">'+fmtRp(k.tarif)+'</b>/jam</td>'
-      +'<td>'+(k.status==='maintenance'?'<span class="badge gray">🔧 Perawatan</span>':'<span class="badge green">● Aktif</span>')+'</td>'
-      +'<td>'+(occ?'<span class="no-chip">No. '+pemNo(occ)+'</span>'+esc(occ.pemancing):'<span class="cell-sub">Kosong</span>')+'</td>'
-      +'<td><div class="row-gap"><button class="btn btn-ghost btn-sm" onclick="openKolamForm(\''+k.id+'\')">Edit</button>'
-      +'<button class="btn btn-ghost btn-sm" onclick="toggleKolam(\''+k.id+'\')">'+(k.status==='maintenance'?'Aktifkan':'Set Perawatan')+'</button>'
-      +'<button class="btn btn-danger btn-sm" onclick="hapusKolam(\''+k.id+'\')">Hapus</button>'
-      +'</div></td></tr>';
-  }).join('');
-  return '<div class="page-head"><div><h2>Kelola Kolam &amp; Tarif</h2><div class="sub">Atur daftar spot kolam, tarif per jam, dan status operasional di cloud.</div></div>'
-    +'<button class="btn btn-primary" onclick="openKolamForm()">＋ Tambah Kolam</button></div>'
-    +(db.kolams.length
-      ?'<div class="table-scroll"><table><thead><tr><th>Nama Kolam</th><th>Kategori Ikan</th><th>Tarif Sewa</th><th>Status</th><th>Pemancing Aktif</th><th>Aksi</th></tr></thead><tbody>'+rows+'</tbody></table></div>'
-      :'<div class="card card-pad"><p class="empty">Daftar kolam masih kosong. Klik tombol <b>＋ Tambah Kolam</b> di kanan atas untuk membuat spot baru.</p></div>')
-    +'<p class="foot-note">Kolam yang sedang dipakai sesi aktif tidak dapat dihapus sebelum sesinya diakhiri.</p>';
-}
-
-function filteredSessions(){
-  let list=db.sessions.slice();
-  const f=riwayatFilter;
-  if(f.tanggal)list=list.filter(s=>ymd(s.mulai)===f.tanggal);
-  if(f.status)list=list.filter(s=>s.status===f.status);
-  if(f.cari){
-    const q=f.cari.toLowerCase();
-    list=list.filter(s=>(s.pemancing+' '+s.kode+' '+kolamName(s.kolamId)+' '+(s.tangkapan?s.tangkapan.jenis:'')).toLowerCase().includes(q));
-  }
-  return list.sort((a,b)=>b.mulai-a.mulai);
-}
-function vRiwayat(){
-  const isAdmin=me.role==='admin';
-  const f=riwayatFilter;
-  const fTanggal=f.tanggal||ymd(Date.now());
-  const savedTanggal=f.tanggal;
-  f.tanggal=fTanggal;
-  const list=filteredSessions();
-  f.tanggal=savedTanggal;
-  const validList=list.filter(s=>s.status!=='dibatalkan');
-  const tot=validList.reduce((a,s)=>a+s.total,0);
-  const totEkor=validList.reduce((a,s)=>a+(s.tangkapan&&s.tangkapan.jumlah?Number(s.tangkapan.jumlah):0),0);
-  const totKg=validList.reduce((a,s)=>a+(s.tangkapan&&s.tangkapan.berat?Number(s.tangkapan.berat):0),0);
-  const rows=list.map(s=>
-    '<tr><td><div class="cell-main mono">'+s.kode+'</div><div class="cell-sub">'+jamMenit(s.mulai)+'</div></td>'
-    +'<td>'+esc(kolamName(s.kolamId))+'</td><td><span class="no-chip">No. '+pemNo(s)+'</span><b>'+esc(s.pemancing)+'</b></td><td>'+statusBadge(s)+'</td>'
-    +'<td>'+fmtDur(s.tagihMenit)+'</td><td>'+(s.tangkapan?'<span class="badge outline-green">🐟 '+esc(fmtTangkapan(s.tangkapan))+'</span>':'<span class="cell-sub">-</span>')+'</td><td><b class="money">'+fmtRp(s.total)+'</b></td><td>'+payBadge(s)+'</td>'
-    +'<td><button class="btn btn-ghost btn-sm" onclick="openDetail(\''+s.id+'\')">Detail</button></td></tr>').join('');
-  const sel=(v,l)=>'<option value="'+v+'"'+(f.status===v?' selected':'')+'>'+l+'</option>';
-  return '<div class="page-head"><div><h2>'+(isAdmin?'Riwayat Sesi':'Riwayat Transaksi')+'</h2><div class="sub">Menampilkan <b>'+list.length+'</b> sesi · Akumulasi tagihan <b class="money">'+fmtRp(tot)+'</b>'+(totEkor||totKg?' · Total tangkapan <b>'+totEkor+' ekor ('+totKg.toFixed(2).replace('.',',')+' kg)</b>':'')+'</div></div></div>'
-    +'<div class="filter-bar">'
-    +'<div class="field"><label>Tanggal</label><input type="date" value="'+fTanggal+'" onchange="setFilter(\'tanggal\',this.value)"></div>'
-    +'<div class="field"><label>Status Sesi</label><select onchange="setFilter(\'status\',this.value)">'+sel('','Semua Status')+sel('aktif','Sedang Berjalan')+sel('selesai','Selesai')+sel('dibatalkan','Dibatalkan')+'</select></div>'
-    +'<div class="field grow"><label>Pencarian (Tekan Enter)</label><input value="'+esc(f.cari)+'" onchange="setFilter(\'cari\',this.value)" placeholder="Cari pemancing, kode tiket, kolam, atau jenis ikan..."></div>'
-    +'<div class="field"><label>&nbsp;</label><button class="btn btn-ghost" onclick="resetFilter()">Reset Filter</button></div>'
-    +'</div>'
-    +(list.length?'<div class="table-scroll"><table><thead><tr><th>Kode Sesi</th><th>Kolam</th><th>Pemancing</th><th>Status</th><th>Durasi Tagih</th><th>Tangkapan</th><th>Total</th><th>Pembayaran</th><th>Aksi</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="card card-pad"><p class="empty">Belum ada riwayat sesi pada tanggal ini.</p></div>');
-}
-window.setFilter=function(k,v){riwayatFilter[k]=v;render()};
-window.resetFilter=function(){riwayatFilter.tanggal='';riwayatFilter.status='';riwayatFilter.cari='';render()};
-
-function getLaporanData(){
-  const now=Date.now();
-  const mode=laporanFilter.mode||'mingguan';
-  const refTgl=laporanFilter.tanggal||ymd(now);
-  const refBln=laporanFilter.bulan||ymd(now).slice(0,7);
-
-  let startTs=0, endTs=0, title='', subtitle='', chartTitle='', buckets=[];
-
-  if(mode==='harian'){
-    const p=refTgl.split('-');
-    const d0=new Date(parseInt(p[0],10),parseInt(p[1],10)-1,parseInt(p[2],10),0,0,0,0);
-    startTs=d0.getTime();
-    endTs=startTs+HARI;
-    title='Laporan Operasional Harian';
-    subtitle=tglPanjang(startTs);
-    chartTitle='Distribusi Pendapatan per Shift / Jam ('+d0.toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'})+')';
-    const shifts=[
-      {label:'00–06',h0:0,h1:6},
-      {label:'06–09',h0:6,h1:9},
-      {label:'09–12',h0:9,h1:12},
-      {label:'12–15',h0:12,h1:15},
-      {label:'15–18',h0:15,h1:18},
-      {label:'18–21',h0:18,h1:21},
-      {label:'21–24',h0:21,h1:24}
-    ];
-    const curHour=new Date().getHours();
-    const isToday=sameDay(startTs,now);
-    buckets=shifts.map(sh=>{
-      const b0=startTs+sh.h0*JAM, b1=startTs+sh.h1*JAM;
-      const ss=db.sessions.filter(s=>s.status!=='dibatalkan'&&s.mulai>=b0&&s.mulai<b1);
-      return {
-        label:sh.label,
-        today:isToday&&curHour>=sh.h0&&curHour<sh.h1,
-        total:ss.reduce((a,s)=>a+s.total,0),
-        n:ss.length
-      };
-    });
-  }else if(mode==='bulanan'){
-    const p=refBln.split('-');
-    const yr=parseInt(p[0],10), mo=parseInt(p[1],10)-1;
-    const dStart=new Date(yr,mo,1,0,0,0,0);
-    const dNext=new Date(yr,mo+1,1,0,0,0,0);
-    const daysInMonth=new Date(yr,mo+1,0).getDate();
-    startTs=dStart.getTime();
-    endTs=dNext.getTime();
-    const blnLabel=dStart.toLocaleDateString('id-ID',{month:'long',year:'numeric'});
-    title='Laporan Operasional Bulanan';
-    subtitle='Periode Bulan '+blnLabel+' (1 s.d. '+daysInMonth+' '+dStart.toLocaleDateString('id-ID',{month:'short'})+')';
-    chartTitle='Grafik Pendapatan per Minggu ('+blnLabel+')';
-    const weeks=[
-      {label:'Mgg 1 (1–7)',d0:1,d1:7},
-      {label:'Mgg 2 (8–14)',d0:8,d1:14},
-      {label:'Mgg 3 (15–21)',d0:15,d1:21},
-      {label:'Mgg 4 (22–28)',d0:22,d1:28}
-    ];
-    if(daysInMonth>28)weeks.push({label:'Mgg 5 (29–'+daysInMonth+')',d0:29,d1:daysInMonth});
-    const todayDate=new Date();
-    const isCurMonth=todayDate.getFullYear()===yr&&todayDate.getMonth()===mo;
-    buckets=weeks.map(w=>{
-      const w0=new Date(yr,mo,w.d0,0,0,0,0).getTime();
-      const w1=new Date(yr,mo,w.d1+1,0,0,0,0).getTime();
-      const ss=db.sessions.filter(s=>s.status!=='dibatalkan'&&s.mulai>=w0&&s.mulai<w1);
-      return {
-        label:w.label,
-        today:isCurMonth&&todayDate.getDate()>=w.d0&&todayDate.getDate()<=w.d1,
-        total:ss.reduce((a,s)=>a+s.total,0),
-        n:ss.length
-      };
-    });
-  }else{
-    const p=refTgl.split('-');
-    const dEnd=new Date(parseInt(p[0],10),parseInt(p[1],10)-1,parseInt(p[2],10),0,0,0,0);
-    const endDayTs=dEnd.getTime();
-    startTs=endDayTs-6*HARI;
-    endTs=endDayTs+HARI;
-    title='Laporan Operasional Mingguan';
-    subtitle='Periode 7 Hari — '+tglPanjang(startTs)+' s.d. '+tglPanjang(endDayTs);
-    chartTitle='Grafik Pendapatan Harian (7 Hari)';
-    for(let d=6;d>=0;d--){
-      const t0=endDayTs-d*HARI;
-      const ss=db.sessions.filter(s=>s.status!=='dibatalkan'&&sameDay(s.mulai,t0));
-      const dt=new Date(t0);
-      buckets.push({
-        label:dt.toLocaleDateString('id-ID',{weekday:'short'})+' '+dt.getDate(),
-        today:sameDay(t0,now),
-        total:ss.reduce((a,s)=>a+s.total,0),
-        n:ss.length
-      });
-    }
-  }
-
-  const list=db.sessions.filter(s=>s.status!=='dibatalkan'&&s.mulai>=startTs&&s.mulai<endTs).sort((a,b)=>a.mulai-b.mulai);
-  const totOmzet=list.reduce((a,s)=>a+s.total,0);
-  const totSesi=list.length;
-  const totMenit=list.reduce((a,s)=>a+(s.tagihMenit||0),0);
-  const totJamStr=(totMenit/60).toFixed(1).replace('.',',');
-  const lunasList=list.filter(s=>s.bayar&&s.bayar.status==='lunas');
-  const belumList=list.filter(s=>!s.bayar||s.bayar.status==='belum');
-  const totLunas=lunasList.reduce((a,s)=>a+s.total,0);
-  const totBelum=belumList.reduce((a,s)=>a+s.total,0);
-  const totEkor=list.reduce((a,s)=>a+(s.tangkapan&&s.tangkapan.jumlah?Number(s.tangkapan.jumlah):0),0);
-  const totKg=list.reduce((a,s)=>a+(s.tangkapan&&s.tangkapan.berat?Number(s.tangkapan.berat):0),0);
-
-  const byJenis={};
-  list.forEach(s=>{
-    if(!s.tangkapan)return;
-    const rawJ=(s.tangkapan.jenis||'').trim();
-    const key=(rawJ&&rawJ!=='-')?rawJ:'Tidak Disebutkan';
-    const norm=key.toLowerCase();
-    if(!byJenis[norm])byJenis[norm]={nama:key,sesi:0,ekor:0,kg:0};
-    byJenis[norm].sesi+=1;
-    byJenis[norm].ekor+=Number(s.tangkapan.jumlah)||0;
-    byJenis[norm].kg+=Number(s.tangkapan.berat)||0;
+  document.querySelectorAll('[data-timer]').forEach(el => {
+    const s = state.sessions.find(x => x.id === el.getAttribute('data-timer'));
+    if (!s || s.status !== 'aktif') return;
+    const cls = timerClass(s);
+    el.textContent = timerText(s);
+    el.className = (el.classList.contains('timer-inline') ? 'timer-inline ' : 'timer ') + cls;
   });
-  const jenisList=Object.values(byJenis).sort((a,b)=>(b.kg-a.kg)||(b.ekor-a.ekor));
-
-  const kolamStats=db.kolams.map(k=>{
-    const ss=list.filter(s=>s.kolamId===k.id);
-    const kMenit=ss.reduce((a,s)=>a+(s.tagihMenit||0),0);
-    const kEkor=ss.reduce((a,s)=>a+(s.tangkapan&&s.tangkapan.jumlah?Number(s.tangkapan.jumlah):0),0);
-    const kKg=ss.reduce((a,s)=>a+(s.tangkapan&&s.tangkapan.berat?Number(s.tangkapan.berat):0),0);
-    const kTotal=ss.reduce((a,s)=>a+s.total,0);
-    return {nama:k.nama,sesi:ss.length,jamStr:(kMenit/60).toFixed(1).replace('.',','),ekor:kEkor,kg:kKg,total:kTotal};
-  });
-
-  return {
-    mode,refTgl,refBln,startTs,endTs,title,subtitle,chartTitle,buckets,
-    list,totOmzet,totSesi,totJamStr,lunasList,belumList,totLunas,totBelum,
-    totEkor,totKg,jenisList,kolamStats
-  };
-}
-
-window.setLaporanMode=function(m){laporanFilter.mode=m;render()};
-window.setLaporanTanggal=function(v){laporanFilter.tanggal=v;render()};
-window.setLaporanBulan=function(v){laporanFilter.bulan=v;render()};
-
-function vLaporan(){
-  const d=getLaporanData();
-  const max=Math.max.apply(null,d.buckets.map(b=>b.total).concat([1]));
-  const bars=d.buckets.map(b=>{
-    const pct=Math.round(b.total/max*100);
-    return '<div class="col"><div class="bar-area"><div class="bar'+(b.today?' bar-today':'')+'" style="height:'+Math.max(pct,3)+'%"></div></div>'
-      +'<span class="bar-val money">'+fmtShort(b.total)+'</span><span class="bar-label">'+(b.today&&d.mode==='mingguan'?'Hari Ini':b.label)+'</span></div>';
-  }).join('');
-
-  const rowsJenis=d.jenisList.map(j=>'<tr><td><b>🐟 '+esc(j.nama)+'</b></td><td>'+j.sesi+' sesi</td><td><b>'+j.ekor+' ekor</b></td><td><b>'+j.kg.toFixed(2).replace('.',',')+' kg</b></td></tr>').join('');
-
-  const perKolam=d.kolamStats.map(k=>{
-    const kCatch=(k.ekor||k.kg)?k.ekor+' ekor ('+k.kg.toFixed(2).replace('.',',')+' kg)':'-';
-    return '<tr><td><b>'+esc(k.nama)+'</b></td><td>'+k.sesi+' sesi</td><td>'+k.jamStr+' jam</td><td>'+kCatch+'</td><td><b class="money">'+fmtRp(k.total)+'</b></td></tr>';
-  }).join('');
-
-  const rowsSesi=d.list.slice().reverse().map(s=>{
-    const dmyShort=new Date(s.mulai).toLocaleDateString('id-ID',{day:'2-digit',month:'short'});
-    return '<tr><td><div class="cell-main mono">'+s.kode+'</div><div class="cell-sub">'+dmyShort+' · '+jamMenit(s.mulai)+'</div></td>'
-      +'<td>'+esc(kolamName(s.kolamId))+'</td>'
-      +'<td><span class="no-chip">No. '+pemNo(s)+'</span><b>'+esc(s.pemancing)+'</b></td>'
-      +'<td>'+fmtDur(s.tagihMenit)+'</td>'
-      +'<td>'+(s.tangkapan?'<span class="badge outline-green">🐟 '+esc(fmtTangkapan(s.tangkapan))+'</span>':'<span class="cell-sub">-</span>')+'</td>'
-      +'<td><b class="money">'+fmtRp(s.total)+'</b></td>'
-      +'<td>'+payBadge(s)+'</td></tr>';
-  }).join('');
-
-  const pickerHTML=d.mode==='bulanan'
-    ?'<div class="field"><label>Pilih Bulan &amp; Tahun</label><input type="month" value="'+esc(d.refBln)+'" onchange="setLaporanBulan(this.value)"></div>'
-    :'<div class="field"><label>'+(d.mode==='harian'?'Pilih Tanggal Laporan':'Tanggal Akhir (7 Hari)')+'</label><input type="date" value="'+esc(d.refTgl)+'" onchange="setLaporanTanggal(this.value)"></div>';
-
-  return '<div class="page-head"><div><h2>'+d.title+'</h2><div class="sub">'+d.subtitle+'</div></div>'
-    +'<div class="row-gap">'
-    +'<button class="btn btn-ghost" onclick="openLaporanPreview()">👁️ Pratinjau Cetak</button>'
-    +'<button class="btn btn-primary" onclick="printLaporan()">🖨️ Cetak Laporan '+(d.mode==='harian'?'Harian':d.mode==='bulanan'?'Bulanan':'Mingguan')+'</button>'
-    +'</div></div>'
-    +'<div class="filter-bar">'
-    +'<div class="field"><label>Periode Laporan</label><div class="chip-row">'
-    +'<button type="button" class="chip'+(d.mode==='harian'?' on':'')+'" onclick="setLaporanMode(\'harian\')">📅 Harian</button>'
-    +'<button type="button" class="chip'+(d.mode==='mingguan'?' on':'')+'" onclick="setLaporanMode(\'mingguan\')">📆 Mingguan</button>'
-    +'<button type="button" class="chip'+(d.mode==='bulanan'?' on':'')+'" onclick="setLaporanMode(\'bulanan\')">🗓️ Bulanan</button>'
-    +'</div></div>'
-    +pickerHTML
-    +'</div>'
-    +'<div class="stat-grid">'
-    +stat('Total Omzet','<span class="money">'+fmtRp(d.totOmzet)+'</span>','Akumulasi seluruh spot','📈')
-    +stat('Volume Transaksi',d.totSesi+' sesi',d.totJamStr+' jam sewa terjual','🎣')
-    +stat('Total Tangkapan Ikan',d.totEkor+' ekor',d.totKg.toFixed(2).replace('.',',')+' kg total berat','🐟')
-    +stat('Status Pembayaran','<span class="money">'+fmtShort(d.totLunas)+' lunas</span>',d.belumList.length+' bon ('+fmtShort(d.totBelum)+') belum lunas','💳')
-    +'</div>'
-    +'<div class="card card-pad" style="margin-top:16px"><div class="card-title"><span>📊 '+d.chartTitle+'</span><span class="badge outline-green">'+d.totSesi+' Sesi</span></div><div class="chart">'+bars+'</div></div>'
-    +'<div class="card card-pad" style="margin-top:16px"><div class="card-title"><span>🐟 Rekapitulasi Tangkapan per Jenis Ikan</span><span class="badge outline-green">'+d.totEkor+' Ekor · '+d.totKg.toFixed(2).replace('.',',')+' KG</span></div>'
-    +(d.jenisList.length?'<div class="table-scroll"><table style="min-width:440px"><thead><tr><th>Jenis Ikan</th><th>Frekuensi Sesi</th><th>Total Jumlah</th><th>Total Berat (KG)</th></tr></thead><tbody>'+rowsJenis+'</tbody></table></div>':'<p class="empty">Belum ada data hasil tangkapan ikan yang tercatat pada periode ini.</p>')
-    +'</div>'
-    +'<div class="card card-pad" style="margin-top:16px"><div class="card-title"><span>🗺️ Kontribusi per Kolam</span></div>'
-    +(d.kolamStats.length?'<div class="table-scroll"><table style="min-width:520px"><thead><tr><th>Nama Kolam</th><th>Jumlah Sesi</th><th>Total Jam</th><th>Hasil Tangkapan</th><th>Pendapatan</th></tr></thead><tbody>'+perKolam+'</tbody></table></div>':'<p class="empty">Belum ada kolam terdaftar.</p>')
-    +'</div>'
-    +'<div class="card card-pad" style="margin-top:16px"><div class="card-title"><span>🧾 Rincian Transaksi Sesi</span><span class="badge gray">'+d.list.length+' Sesi</span></div>'
-    +(d.list.length?'<div class="table-scroll"><table><thead><tr><th>Kode &amp; Waktu</th><th>Kolam</th><th>Pemancing</th><th>Durasi</th><th>Hasil Tangkapan</th><th>Tagihan</th><th>Status</th></tr></thead><tbody>'+rowsSesi+'</tbody></table></div>':'<p class="empty">Tidak ada transaksi sesi pada periode ini.</p>')
-    +'</div>';
-}
-
-function laporanPrintHTML(){
-  const d=getLaporanData();
-  const venue=db.settings.venueName||'Taman Wisata Mata Air Ciburial';
-  const appName=db.settings.appName||'Billing Kolam Pancing';
-  const op=(db.settings.operatorName||'').trim()||(me?me.label:'Admin');
-  const cetakWaktu=tglPanjang(Date.now())+', '+jamMenit(Date.now());
-
-  const rowsKolam=d.kolamStats.map(k=>{
-    const catchTxt=(k.ekor||k.kg)?k.ekor+' ekor ('+k.kg.toFixed(2).replace('.',',')+' kg)':'-';
-    return '<tr><td><b>'+esc(k.nama)+'</b></td><td class="rpt-num">'+k.sesi+' sesi</td><td class="rpt-num">'+k.jamStr+' jam</td><td class="rpt-num">'+catchTxt+'</td><td class="rpt-num"><b>'+fmtRp(k.total)+'</b></td></tr>';
-  }).join('');
-
-  const rowsJenis=d.jenisList.map((j,idx)=>
-    '<tr><td>'+(idx+1)+'</td><td><b>'+esc(j.nama)+'</b></td><td class="rpt-num">'+j.sesi+' sesi</td><td class="rpt-num"><b>'+j.ekor+' ekor</b></td><td class="rpt-num"><b>'+j.kg.toFixed(2).replace('.',',')+' kg</b></td></tr>'
-  ).join('');
-
-  const rowsTransaksi=d.list.map((s,idx)=>{
-    const dtObj=new Date(s.mulai);
-    const tglStr=pad(dtObj.getDate())+'/'+pad(dtObj.getMonth()+1)+' '+jamMenit(s.mulai);
-    const catchStr=s.tangkapan?esc(fmtTangkapan(s.tangkapan)):'-';
-    return '<tr><td>'+(idx+1)+'</td><td class="mono">'+s.kode+'</td><td>'+tglStr+'</td><td>'+esc(s.pemancing)+' (No.'+pemNo(s)+')</td><td class="rpt-num">'+fmtDur(s.tagihMenit)+'</td><td>'+catchStr+'</td><td class="rpt-num"><b>'+fmtRp(s.total)+'</b></td></tr>';
-  }).join('');
-
-  return '<div class="rpt-print">'
-    +'<div class="rpt-head">'
-      +'<div><div class="rpt-venue">🎣 '+esc(venue)+' — '+esc(appName)+'</div>'
-      +'<div class="rpt-title">'+esc(d.title)+'</div>'
-      +'<div class="rpt-period">'+esc(d.subtitle)+'</div></div>'
-      +'<div class="rpt-meta-box"><div>Dicetak pada:</div><div><b>'+esc(cetakWaktu)+'</b></div><div>Petugas: <b>'+esc(op)+'</b></div></div>'
-    +'</div>'
-    +'<div class="rpt-kpis">'
-      +'<div class="rpt-kpi"><div class="k">Total Pendapatan</div><div class="v">'+fmtRp(d.totOmzet)+'</div><div class="s">Lunas '+fmtShort(d.totLunas)+' · Bon '+fmtShort(d.totBelum)+'</div></div>'
-      +'<div class="rpt-kpi"><div class="k">Volume Transaksi</div><div class="v">'+d.totSesi+' Sesi</div><div class="s">Total '+d.totJamStr+' jam sewa</div></div>'
-      +'<div class="rpt-kpi"><div class="k">Tangkapan (Ekor)</div><div class="v">'+d.totEkor+' Ekor</div><div class="s">Dari '+d.list.filter(s=>s.tangkapan).length+' sesi tercatat</div></div>'
-      +'<div class="rpt-kpi"><div class="k">Total Berat Ikan</div><div class="v">'+d.totKg.toFixed(2).replace('.',',')+' KG</div><div class="s">'+d.jenisList.length+' jenis ikan</div></div>'
-    +'</div>'
-    +'<div class="rpt-sec"><div class="rpt-sec-title">1. Rekapitulasi Pendapatan &amp; Tangkapan per Kolam</div>'
-      +'<table class="rpt-table"><thead><tr><th>Nama Kolam</th><th class="rpt-num">Jumlah Sesi</th><th class="rpt-num">Total Jam</th><th class="rpt-num">Hasil Tangkapan</th><th class="rpt-num">Pendapatan</th></tr></thead>'
-      +'<tbody>'+(rowsKolam||'<tr><td colspan="5" style="text-align:center;color:#64748b">Belum ada data kolam</td></tr>')+'</tbody>'
-      +'<tfoot><tr><td>TOTAL KESELURUHAN</td><td class="rpt-num">'+d.totSesi+' sesi</td><td class="rpt-num">'+d.totJamStr+' jam</td><td class="rpt-num">'+d.totEkor+' ekor ('+d.totKg.toFixed(2).replace('.',',')+' kg)</td><td class="rpt-num">'+fmtRp(d.totOmzet)+'</td></tr></tfoot>'
-      +'</table>'
-    +'</div>'
-    +'<div class="rpt-sec"><div class="rpt-sec-title">2. Rekapitulasi Hasil Tangkapan per Jenis Ikan</div>'
-      +(d.jenisList.length
-        ?'<table class="rpt-table"><thead><tr><th style="width:28px">No</th><th>Jenis Ikan</th><th class="rpt-num">Frekuensi Sesi</th><th class="rpt-num">Total Jumlah (Ekor)</th><th class="rpt-num">Total Berat (KG)</th></tr></thead><tbody>'+rowsJenis+'</tbody>'
-          +'<tfoot><tr><td colspan="3">TOTAL TANGKAPAN IKAN</td><td class="rpt-num">'+d.totEkor+' ekor</td><td class="rpt-num">'+d.totKg.toFixed(2).replace('.',',')+' kg</td></tr></tfoot></table>'
-        :'<p style="color:#64748b;font-size:11px;padding:4px 0">Tidak ada data tangkapan ikan yang tercatat pada periode ini.</p>')
-    +'</div>'
-    +'<div class="rpt-sec"><div class="rpt-sec-title">3. Rincian Daftar Transaksi Sesi ('+d.list.length+' Sesi)</div>'
-      +(d.list.length
-        ?'<table class="rpt-table"><thead><tr><th style="width:24px">No</th><th>Kode Sesi</th><th>Waktu</th><th>Pemancing</th><th class="rpt-num">Durasi</th><th>Hasil Tangkapan</th><th class="rpt-num">Total</th></tr></thead><tbody>'+rowsTransaksi+'</tbody></table>'
-        :'<p style="color:#64748b;font-size:11px;padding:4px 0">Tidak ada transaksi sesi pada periode ini.</p>')
-    +'</div>'
-    +'<div class="rpt-sign">'
-      +'<div class="rpt-sign-box"><div>Disiapkan oleh (Kasir / Operator),</div><div class="rpt-sign-line">'+esc(op)+'</div></div>'
-      +'<div class="rpt-sign-box"><div>Mengetahui (Pengelola / Admin),</div><div class="rpt-sign-line">__________________________</div></div>'
-    +'</div>'
-  +'</div>';
-}
-
-window.openLaporanPreview=function(){
-  const d=getLaporanData();
-  modal('<h3>🖨️ Pratinjau Cetak — '+esc(d.title)+'</h3><div class="modal-sub">'+esc(d.subtitle)+' · Format Dokumen A4</div>'
-    +'<div style="overflow:auto;max-height:66vh;padding:10px;background:var(--surface-2);border-radius:12px;border:1px solid var(--line)">'+laporanPrintHTML()+'</div>'
-    +'<div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Tutup</button>'
-    +'<button class="btn btn-primary" onclick="printLaporan()">🖨️ Cetak Laporan Sekarang</button></div>',true);
-};
-
-window.printLaporan=function(){
-  $('#printRoot').innerHTML=laporanPrintHTML();
-  try{window.print()}catch(e){toast('Fungsi cetak tidak tersedia di tampilan preview ini.','err')}
-};
-
-function vSetelan(){
-  const s=db.settings;
-  return '<div class="page-head"><div><h2>Pengaturan Sistem</h2><div class="sub">Konfigurasi identitas venue, tiket cetak, dan manajemen cloud database Firebase.</div></div></div>'
-    +'<div class="setelan-grid">'
-    +'<div class="card card-pad"><div class="card-title"><span>🏷️ Identitas Venue &amp; Tiket</span></div>'
-    +'<div class="field"><label>Nama Aplikasi</label><input id="sAppName" value="'+esc(s.appName)+'"></div>'
-    +'<div class="grid2">'
-    +'<div class="field"><label>Nama Operator Default (Tiket)</label><input id="sOperator" value="'+esc(s.operatorName||'Kasir')+'"></div>'
-    +'<div class="field"><label>Nama Venue / Lokasi</label><input id="sVenue" value="'+esc(s.venueName||'')+'"></div>'
-    +'</div>'
-    +'<div class="field"><label>Tarif Default Kolam Baru (Rp/jam)</label><input id="sTarif" type="number" min="0" step="500" value="'+s.tarifDefault+'"></div>'
-    +'<button class="btn btn-primary" onclick="saveSettings()">Simpan ke Cloud</button>'
-    +'<p class="foot-note">Akun &amp; password petugas dikelola melalui menu <b>Authentication → Users</b> di Firebase Console.</p>'
-    +'</div>'
-    +'<div class="card card-pad"><div class="card-title"><span>☁️ Manajemen Cloud Firestore</span></div>'
-    +'<p class="empty" style="margin-bottom:14px">Status tersinkronisasi: <b>'+db.sessions.length+'</b> rekaman sesi · <b>'+db.kolams.length+'</b> spot kolam.</p>'
-    +'<button class="btn btn-danger" onclick="askReset()">🗑️ Kosongkan Database Cloud (Reset ke 0)</button>'
-    +'<p class="foot-note">Menghapus seluruh data sesi dan kolam di Firebase Firestore sehingga sistem bersih seperti baru.</p>'
-    +'</div>'
-    +'</div>';
-}
-window.saveSettings=async function(){
-  const tarif=parseInt($('#sTarif').value,10);
-  if(isNaN(tarif)||tarif<0){toast('Tarif default tidak valid.','err');return}
-  const updated={
-    appName:$('#sAppName').value.trim()||'Billing Kolam Pancing',
-    operatorName:$('#sOperator').value.trim()||'Kasir',
-    venueName:$('#sVenue').value.trim()||'Taman Wisata Mata Air Ciburial',
-    tarifDefault:tarif
-  };
-  try{
-    await setDoc(doc(fsDb,'settings','main'),updated,{merge:true});
-    toast('Pengaturan berhasil disimpan ke Firebase.','ok');
-  }catch(e){
-    toast('Gagal menyimpan pengaturan: '+e.message,'err');
-  }
-};
-window.askReset=function(){
-  confirmDlg('Hapus seluruh data sesi dan kolam di Firebase Firestore menjadi <b>0 (kosong bersih)</b>? Tindakan ini tidak dapat dibatalkan.','Kosongkan Database',async function(){
-    try{
-      await initEmptyFirestore(true);
-      toast('Database cloud berhasil dikosongkan menjadi 0.','ok');
-    }catch(e){
-      toast('Gagal mengosongkan cloud: '+e.message,'err');
-    }
-  });
-};
-window.toggleKolam=async function(id){
-  const k=kolamById(id);
-  if(!k)return;
-  if(k.status==='aktif'&&activeByKolam(id)){toast('Kolam sedang digunakan sesi aktif — akhiri sesi terlebih dahulu.','err');return}
-  const nextStatus=k.status==='aktif'?'maintenance':'aktif';
-  try{
-    await updateDoc(doc(fsDb,'kolams',id),{status:nextStatus});
-    toast('Status '+k.nama+' diubah menjadi '+(nextStatus==='aktif'?'Aktif':'Perawatan')+'.','ok');
-  }catch(e){toast('Gagal memperbarui status: '+e.message,'err')}
-};
-window.hapusKolam=function(id){
-  const k=kolamById(id);
-  if(!k)return;
-  if(activeByKolam(id)){toast('Kolam sedang digunakan sesi aktif — akhiri sesi terlebih dahulu sebelum menghapus.','err');return}
-  const jmlRiwayat=db.sessions.filter(s=>s.kolamId===id).length;
-  const infoRiwayat=jmlRiwayat?' Kolam ini memiliki <b>'+jmlRiwayat+'</b> riwayat sesi lama.':'';
-  confirmDlg('Hapus spot kolam "<b>'+esc(k.nama)+'</b>" dari daftar?'+infoRiwayat,'Hapus Kolam',async function(){
-    try{
-      await deleteDoc(doc(fsDb,'kolams',id));
-      toast('Kolam '+k.nama+' berhasil dihapus.','ok');
-    }catch(e){toast('Gagal menghapus kolam: '+e.message,'err')}
-  });
-};
-
-/* ================= MODAL & DIALOG ================= */
-function modal(html,wide){
-  $('#modalRoot').innerHTML='<div class="modal-overlay" onclick="if(event.target===this)closeModal()"><div class="modal'+(wide?' wide':'')+'">'+html+'</div></div>';
-}
-window.closeModal=function(){$('#modalRoot').innerHTML=''};
-function toast(msg,type='ok'){
-  const w=$('#toast'),el=document.createElement('div');
-  el.className='toast '+type;
-  el.textContent=(type==='err'?'⚠️ ':'✅ ')+msg;
-  w.appendChild(el);
-  setTimeout(function(){el.style.transition='opacity .3s';el.style.opacity='0';setTimeout(function(){el.remove()},320)},3000);
-}
-function confirmDlg(msg,okLabel,fn){
-  window._confirmFn=fn;
-  modal('<h3>Konfirmasi Tindakan</h3><p style="font-size:14px;color:var(--ink-2)">'+msg+'</p><div class="modal-actions">'
-    +'<button class="btn btn-ghost" onclick="closeModal()">Batal</button>'
-    +'<button class="btn btn-danger" onclick="runConfirm()">'+okLabel+'</button></div>');
-}
-window.runConfirm=function(){const f=window._confirmFn;closeModal();if(f)f()};
-
-/* --- Mulai Sesi --- */
-const DURASI=[[30,'30 mnt'],[60,'1 jam'],[90,'90 mnt'],[120,'2 jam'],[180,'3 jam'],[240,'4 jam'],[360,'6 jam'],[480,'8 jam']];
-let mDur=60;
-window.openStart=function(pre){
-  const avail=db.kolams.filter(k=>k.status==='aktif'&&!activeByKolam(k.id));
-  if(!avail.length){toast('Tidak ada kolam kosong yang tersedia. Tambah kolam baru atau akhiri sesi yang berjalan.','err');return}
-  if(!avail.some(k=>k.id===pre))pre=avail[0].id;
-  window._preKolam=pre;mDur=60;
-  modal('<h3>🎣 Mulai Sesi Memancing</h3><div class="modal-sub">Durasi dihitung per kelipatan 30 menit (minimal 30 menit).</div>'
-    +'<div class="field"><label>Pilih Kolam / Spot</label><select id="fKolam" onchange="updStart()">'
-    +avail.map(k=>'<option value="'+k.id+'"'+(k.id===pre?' selected':'')+'>'+esc(k.nama)+' — '+fmtRp(k.tarif)+'/jam</option>').join('')
-    +'</select></div>'
-    +'<div class="grid2">'
-    +'<div class="field"><label>Nama Pemancing</label><input id="fNama" placeholder="Contoh: Budi Hartono" oninput="updStart()"></div>'
-    +'<div class="field"><label>Nama Operator / Kasir</label><input id="fOperator" value="'+esc(db.settings.operatorName||(me?me.label:'Kasir'))+'" placeholder="Contoh: Andi / Kasir"></div>'
-    +'</div>'
-    +'<div class="field"><label>Paket Durasi Sewa</label><div class="chip-row" id="durChips">'+durChips()+'</div></div>'
-    +'<div class="field"><label>Penyesuaian Halus (±30 Menit)</label><div class="row-gap">'
-    +'<button class="btn btn-ghost btn-sm" onclick="stepDur(-30)">− 30 mnt</button>'
-    +'<b id="durVal" style="min-width:85px;text-align:center">'+fmtDur(mDur)+'</b>'
-    +'<button class="btn btn-ghost btn-sm" onclick="stepDur(30)">＋ 30 mnt</button>'
-    +'</div></div>'
-    +'<div class="field"><label>Catatan Tambahan (Opsional)</label><textarea id="fCatat" rows="2" placeholder="Contoh: Spot 3, sewa payung / kursi tambahan"></textarea></div>'
-    +'<div id="startRingkas"></div>'
-    +'<div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Batal</button>'
-    +'<button id="btnDoStart" class="btn btn-primary" onclick="doStart()">▶ Mulai Sesi Sekarang</button></div>');
-  updStart();
-};
-function durChips(){
-  return DURASI.map(d=>'<button class="chip'+(mDur===d[0]?' on':'')+'" onclick="pickDur('+d[0]+')">'+d[1]+'</button>').join('');
-}
-window.pickDur=function(v){mDur=v;updStart()};
-window.stepDur=function(d){mDur=Math.max(30,mDur+d);updStart()};
-window.updStart=function(){
-  mDur=Math.max(30,mDur);
-  const k=kolamById($('#fKolam').value);
-  const nama=$('#fNama').value.trim();
-  const total=priceOf(k.tarif,mDur);
-  $('#durVal').textContent=fmtDur(mDur);
-  $('#durChips').innerHTML=durChips();
-  $('#startRingkas').innerHTML='<div class="total-line"><span class="lbl"><b>'+esc(k.nama)+'</b> · '+fmtRp(k.tarif)+'/jam × '+fmtDur(mDur)+(nama?'<br>Pemancing: <b>'+esc(nama)+'</b>':'')+'</span><span class="amt money">'+fmtRp(total)+'</span></div>';
-};
-window.doStart=async function(){
-  const k=kolamById($('#fKolam').value);
-  if(!k||activeByKolam(k.id)){toast('Kolam baru saja terisi.','err');return}
-  const btn=$('#btnDoStart');if(btn)btn.disabled=true;
-  const now=Date.now();
-  const kode=makeKode(now);
-  const opName=$('#fOperator').value.trim()||(db.settings.operatorName||'').trim()||(me?me.label:'Kasir');
-  const id='s'+now;
-  const data={
-    kode:kode,
-    kodeNorm:normKode(kode),
-    kolamId:k.id,
-    kolamNama:k.nama,
-    pemancing:$('#fNama').value.trim()||'Tamu',
-    operator:opName,
-    tarifJam:k.tarif,
-    durasiMenit:mDur,
-    mulai:now,
-    selesai:null,
-    status:'aktif',
-    basis:null,
-    tagihMenit:mDur,
-    total:priceOf(k.tarif,mDur),
-    bayar:{status:'belum',waktu:null},
-    tangkapan:null,
-    catatan:$('#fCatat').value.trim()
-  };
-  try{
-    await setDoc(doc(fsDb,'sessions',id),data);
-    closeModal();
-    toast('Sesi '+kode+' dimulai & tercatat di database (No. '+pemNo(data)+').','ok');
-    setTimeout(()=>openStruk(id),250);
-  }catch(e){
-    if(btn)btn.disabled=false;
-    toast('Gagal menyimpan sesi ke database: '+e.message,'err');
-  }
-};
-
-/* --- Perpanjang Sesi --- */
-window.openExtend=function(id){
-  const s=byId(id);
-  if(!s||s.status!=='aktif')return;
-  window._xId=id;window._xAdd=30;
-  modal('<h3>⏩ Perpanjang Durasi Sesi</h3><div class="modal-sub"><span class="mono">'+s.kode+'</span> · '+esc(s.pemancing)+' · '+esc(kolamName(s.kolamId))+'</div>'
-    +'<div class="detail-grid" style="margin-bottom:14px"><div><div class="k">Durasi Saat Ini</div><div class="v">'+fmtDur(s.durasiMenit)+'</div></div><div><div class="k">Tagihan Saat Ini</div><div class="v money">'+fmtRp(s.total)+'</div></div></div>'
-    +'<div class="field"><label>Tambah Paket Durasi</label><div class="chip-row" id="xChips"></div></div>'
-    +'<div class="field"><label>Penyesuaian Halus (±30 Menit)</label><div class="row-gap">'
-    +'<button class="btn btn-ghost btn-sm" onclick="stepX(-30)">− 30 mnt</button>'
-    +'<b id="xVal" style="min-width:85px;text-align:center">'+fmtDur(30)+'</b>'
-    +'<button class="btn btn-ghost btn-sm" onclick="stepX(30)">＋ 30 mnt</button>'
-    +'</div></div><div id="xRingkas"></div>'
-    +'<div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Batal</button>'
-    +'<button class="btn btn-primary" onclick="doExtend()">Simpan Perpanjangan</button></div>');
-  updExtend();
-};
-function xChips(){
-  const vals=[30,60,90,120];
-  return vals.map(v=>'<button class="chip'+(window._xAdd===v?' on':'')+'" onclick="pickX('+v+')">+'+fmtDur(v)+'</button>').join('');
-}
-window.pickX=function(v){window._xAdd=v;updExtend()};
-window.stepX=function(d){window._xAdd=Math.max(30,window._xAdd+d);updExtend()};
-function updExtend(){
-  const s=byId(window._xId);
-  const add=window._xAdd;
-  const durBaru=s.durasiMenit+add;
-  const totalBaru=priceOf(s.tarifJam,durBaru);
-  $('#xVal').textContent='+'+fmtDur(add);
-  $('#xChips').innerHTML=xChips();
-  $('#xRingkas').innerHTML='<div class="total-line"><span class="lbl">Durasi total menjadi <b>'+fmtDur(durBaru)+'</b>'+(s.bayar&&s.bayar.status==='lunas'?'<br><small style="color:var(--amber-ink)">Status pembayaran akan kembali menjadi Belum Lunas</small>':'')+'</span><span class="amt money">'+fmtRp(totalBaru)+' <small style="font-weight:600;font-size:12px">(+'+fmtRp(totalBaru-s.total)+')</small></span></div>';
-}
-window.doExtend=async function(){
-  const s=byId(window._xId);
-  if(!s||s.status!=='aktif'){closeModal();return}
-  const durBaru=s.durasiMenit+window._xAdd;
-  const totalBaru=priceOf(s.tarifJam,durBaru);
-  const patch={durasiMenit:durBaru,tagihMenit:durBaru,total:totalBaru};
-  let extra='';
-  if(s.bayar&&s.bayar.status==='lunas'){
-    patch.bayar={status:'belum',waktu:null};
-    extra=' Status pembayaran kembali belum lunas.';
-  }
-  try{
-    await updateDoc(doc(fsDb,'sessions',s.id),patch);
-    closeModal();
-    toast('Sesi '+s.kode+' diperpanjang '+fmtDur(window._xAdd)+' — total '+fmtRp(totalBaru)+'.'+extra,'ok');
-  }catch(e){toast('Gagal memperpanjang sesi: '+e.message,'err')}
-};
-
-/* --- Akhiri Sesi --- */
-let stopBasis='pesanan';
-window.openStop=function(id){
-  const s=byId(id);
-  if(!s||s.status!=='aktif')return;
-  const k=kolamById(s.kolamId);
-  window._stopId=id;stopBasis='pesanan';
-  const elapsed=Math.max(1,Math.ceil(elapsedMs(s)/MIN));
-  const used=usedRounded(elapsed);
-  window._used=used;
-  modal('<h3>⏹ Akhiri Sesi Memancing</h3><div class="modal-sub"><span class="mono">'+s.kode+'</span> · '+esc(s.pemancing)+' · '+esc(kolamName(s.kolamId))+'</div>'
-    +'<div class="detail-grid" style="margin-bottom:14px">'
-    +'<div><div class="k">Waktu Mulai</div><div class="v">'+jamMenit(s.mulai)+'</div></div>'
-    +'<div><div class="k">Durasi Berjalan</div><div class="v">'+fmtDur(elapsed)+'</div></div>'
-    +'<div><div class="k">Durasi Pesanan</div><div class="v">'+fmtDur(s.durasiMenit)+'</div></div>'
-    +'<div><div class="k">Tarif Kolam</div><div class="v money">'+fmtRp(s.tarifJam)+'/jam</div></div></div>'
-    +'<div class="card card-pad" style="padding:14px;background:var(--surface-2);margin-bottom:14px">'
-    +'<div class="card-title" style="margin-bottom:10px;font-size:14px"><span>🐟 Hasil Tangkapan Ikan (Opsional)</span></div>'
-    +'<div class="field" style="margin-bottom:10px"><label>Jenis Ikan</label><input id="fIkanJenis" placeholder="Contoh: '+(k&&k.jenis?esc(k.jenis):'Ikan Mas, Bawal, Patin')+'"></div>'
-    +'<div class="grid2">'
-    +'<div class="field" style="margin-bottom:0"><label>Jumlah (Ekor)</label><input id="fIkanJumlah" type="number" min="0" step="1" placeholder="0"></div>'
-    +'<div class="field" style="margin-bottom:0"><label>Ukuran / Berat (KG)</label><input id="fIkanBerat" type="number" min="0" step="0.01" placeholder="0.00"></div>'
-    +'</div></div>'
-    +'<div class="field"><label>Pilih Dasar Perhitungan Tagihan</label>'
-    +'<div class="opt-card'+(stopBasis==='pesanan'?' on':'')+'" id="optPesanan" onclick="pickStop(\'pesanan\')"><div class="t"><span>Sesuai Paket Pesanan</span><span class="money">'+fmtRp(s.total)+'</span></div><div class="d">Ditagih penuh sesuai durasi awal yang dipesan ('+fmtDur(s.durasiMenit)+').</div></div>'
-    +'<div class="opt-card'+(stopBasis==='terpakai'?' on':'')+'" id="optTerpakai" onclick="pickStop(\'terpakai\')"><div class="t"><span>Sesuai Waktu Terpakai</span><span class="money">'+fmtRp(priceOf(s.tarifJam,used))+'</span></div><div class="d">Pembulatan ke atas per 30 menit (minimal 30 menit) = '+fmtDur(used)+'.</div></div>'
-    +'</div>'
-    +'<div class="modal-actions">'
-    +'<button class="btn btn-ghost" onclick="closeModal()">Batal</button>'
-    +'<button class="btn btn-ghost" onclick="doStop(false)">Selesai (Bon / Belum Lunas)</button>'
-    +'<button class="btn btn-primary" onclick="doStop(true)">✓ Selesai &amp; Lunas Tunai</button>'
-    +'</div>');
-  updStop();
-};
-window.pickStop=function(b){stopBasis=b;updStop()};
-function updStop(){
-  const pes=stopBasis==='pesanan';
-  $('#optPesanan').className='opt-card'+(pes?' on':'');
-  $('#optTerpakai').className='opt-card'+(pes?'':' on');
-}
-window.doStop=async function(lunas){
-  const s=byId(window._stopId);
-  if(!s||s.status!=='aktif'){closeModal();return}
-  const ikanJenis=($('#fIkanJenis')?$('#fIkanJenis').value.trim():'');
-  const ikanJumlah=($('#fIkanJumlah')?parseInt($('#fIkanJumlah').value,10):0)||0;
-  const ikanBerat=($('#fIkanBerat')?parseFloat($('#fIkanBerat').value):0)||0;
-  const tangkapan=(ikanJenis||ikanJumlah>0||ikanBerat>0)?{jenis:ikanJenis||'-',jumlah:ikanJumlah,berat:ikanBerat}:null;
-  const elapsed=Math.max(1,Math.ceil(elapsedMs(s)/MIN));
-  const basis=stopBasis==='terpakai'?'terpakai':'pesanan';
-  const tagih=basis==='terpakai'?usedRounded(elapsed):s.durasiMenit;
-  const total=priceOf(s.tarifJam,tagih);
-  const now=Date.now();
-  const patch={
-    selesai:now,
-    status:'selesai',
-    basis:basis,
-    tagihMenit:tagih,
-    total:total,
-    tangkapan:tangkapan
-  };
-  if(lunas)patch.bayar={status:'lunas',waktu:now};
-  try{
-    await updateDoc(doc(fsDb,'sessions',s.id),patch);
-    closeModal();
-    toast('Sesi '+s.kode+' selesai — total '+fmtRp(total)+(lunas?' (Lunas).':' (Belum lunas).'),'ok');
-    setTimeout(()=>openStruk(s.id),250);
-  }catch(e){toast('Gagal mengakhiri sesi: '+e.message,'err')}
-};
-
-/* --- Bayar Tunai --- */
-window.openBayar=function(id){
-  const s=byId(id);
-  if(!s||s.bayar.status==='lunas')return;
-  window._bayarId=id;
-  const aktif=s.status==='aktif';
-  modal('<h3>💵 Konfirmasi Pembayaran Tunai</h3><div class="modal-sub"><span class="mono">'+s.kode+'</span> · '+esc(s.pemancing)+' · '+esc(kolamName(s.kolamId))+(aktif?' · Sesi masih berjalan':'')+'</div>'
-    +'<div class="total-line"><span class="lbl">Total yang Dibayarkan'+(aktif?'<br><small>Perpanjangan waktu berikutnya akan menambah tagihan baru</small>':'')+'</span><span class="amt money">'+fmtRp(s.total)+'</span></div>'
-    +'<div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Batal</button>'
-    +'<button class="btn btn-primary" onclick="doBayar()">✓ Terima &amp; Tandai Lunas</button></div>');
-};
-window.doBayar=async function(){
-  const s=byId(window._bayarId);
-  if(!s){closeModal();return}
-  try{
-    await updateDoc(doc(fsDb,'sessions',s.id),{bayar:{status:'lunas',waktu:Date.now()}});
-    closeModal();
-    toast('Pembayaran '+s.kode+' diterima — '+fmtRp(s.total)+' tunai.','ok');
-    setTimeout(()=>openStruk(s.id),250);
-  }catch(e){toast('Gagal mencatat pembayaran: '+e.message,'err')}
-};
-
-/* --- Tiket Sesi (Print-Ready 21cm x 6cm) dengan QR Code Asli --- */
-function getPortalUrl(kode){
-  try{
-    const base=window.location.href.substring(0,window.location.href.lastIndexOf('/')+1);
-    return base+'index.html?kode='+encodeURIComponent(kode);
-  }catch(e){
-    return kode;
-  }
-}
-function tkQrSvg(kode){
-  const payload=getPortalUrl(kode);
-  if(typeof qrcode!=='undefined'){
-    try{
-      const qr=qrcode(0,'M');
-      qr.addData(payload);
-      qr.make();
-      return qr.createSvgTag({scalable:true,margin:1});
-    }catch(e){}
-  }
-  return '<div style="font-size:8px;font-weight:800;border:1px solid #000;padding:4px">'+esc(kode)+'</div>';
-}
-function tkSvgLogo(){
-  return '<svg viewBox="0 0 150 96" style="width:100%;height:auto;display:block" aria-hidden="true">'
-    +'<ellipse cx="75" cy="38" rx="68" ry="33" fill="none" stroke="#000" stroke-width="5"/>'
-    +'<path d="M30 28 l8 -15 8 15 Z M45 29 l6 -11 6 11 Z" fill="#000"/>'
-    +'<path d="M100 15 q 9 6 5 17" fill="none" stroke="#000" stroke-width="3" stroke-linecap="round"/>'
-    +'<text x="75" y="39" text-anchor="middle" font-size="12" font-weight="900">Taman Wisata</text>'
-    +'<text x="75" y="53" text-anchor="middle" font-size="12" font-weight="900">Mata Air Ciburial</text>'
-    +'<path d="M28 66 q 12 -9 24 0 t 24 0 t 24 0 t 22 0" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round"/>'
-    +'</svg>';
-}
-function tkSvgFish(){
-  return '<svg viewBox="0 0 110 100" style="width:100%;height:auto;display:block" aria-hidden="true">'
-    +'<path d="M38 44 L 16 28 L 26 44 L 14 60 Z" fill="#000"/>'
-    +'<path d="M38 44 C 46 20, 78 12, 96 24 C 104 30, 105 38, 98 44 C 86 55, 62 58, 48 54 C 40 52, 36 48, 38 44 Z" fill="#000"/>'
-    +'<path d="M56 21 L 60 9 L 66 18 L 72 6 L 78 16 L 84 9 L 88 19" fill="none" stroke="#000" stroke-width="4" stroke-linejoin="round"/>'
-    +'<path d="M99 26 L 89 22 L 97 35 Z" fill="#fff"/>'
-    +'<circle cx="88" cy="29" r="4.5" fill="#fff"/><circle cx="88" cy="29" r="2.2" fill="#000"/>'
-    +'<path d="M78 24 C 74 32, 74 42, 80 50" fill="none" stroke="#fff" stroke-width="2.5" stroke-linecap="round"/>'
-    +'<path d="M62 52 L 56 63 L 68 57 Z" fill="#000"/>'
-    +'<path d="M12 92 q 14 -16 8 -34 M 24 92 q 8 -12 6 -26 M 36 96 q 4 -10 2 -20" fill="none" stroke="#000" stroke-width="4" stroke-linecap="round"/>'
-    +'<circle cx="30" cy="86" r="2.5" fill="#000"/><circle cx="18" cy="80" r="2" fill="#000"/><circle cx="42" cy="93" r="2" fill="#000"/>'
-    +'</svg>';
-}
-function tiketHTML(s){
-  const k=kolamById(s.kolamId);
-  const aktif=s.status==='aktif';
-  const op=(s.operator||'').trim()||(db.settings.operatorName||'').trim()||(me?me.label:'Kasir');
-  const venue=(db.settings.venueName||'Taman Wisata Mata Air Ciburial').toUpperCase();
-  const dmy=ts=>{const d=new Date(ts);return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()};
-  const fill=v=>v?esc(v):'';
-  return '<div class="tiket">'
-    +'<div class="tiket-body">'
-      +'<div class="tiket-main">'
-        +'<div class="tk-head">'
-          +'<div class="tk-logo">'+tkSvgLogo()+'</div>'
-          +'<div class="tk-titlewrap">'
-            +'<svg class="tk-arch" viewBox="0 0 440 88" preserveAspectRatio="xMidYMid meet" aria-hidden="true">'
-              +'<path id="tkArc" d="M 14 80 Q 220 2 426 80" fill="none"/>'
-              +'<text font-size="46" font-weight="900" letter-spacing="1" fill="#000"><textPath href="#tkArc" startOffset="50%" text-anchor="middle">MANCING MANIA</textPath></text>'
-            +'</svg>'
-          +'</div>'
-          +'<div class="tk-fish">'+tkSvgFish()+'</div>'
-        +'</div>'
-        +'<div class="tk-sub"><i></i><b>'+esc(venue)+'</b><i></i></div>'
-        +'<div class="tk-times">'
-          +'<div class="tk-time"><div class="tk-time-h">Waktu Mulai</div><div class="tk-time-b"><span>Tanggal :</span><span class="tk-dots">'+dmy(s.mulai)+'</span><span>Jam :</span><span class="tk-dots">'+jamMenit(s.mulai)+'</span></div></div>'
-          +'<div class="tk-time"><div class="tk-time-h">Waktu Selesai</div><div class="tk-time-b"><span>Tanggal :</span><span class="tk-dots">'+(aktif?'':dmy(s.selesai))+'</span><span>Jam :</span><span class="tk-dots">'+(aktif?'':jamMenit(s.selesai))+'</span></div></div>'
-        +'</div>'
-      +'</div>'
-      +'<div class="tiket-fields">'
-        +'<div class="tk-row"><span class="tk-lab">No. Tiket</span><span class="tk-col">:</span><span class="tk-val">'+s.kode+'</span></div>'
-        +'<div class="tk-row"><span class="tk-lab">No. Pemancing</span><span class="tk-col">:</span><span class="tk-val"><b style="letter-spacing:1.5px">No. '+pemNo(s)+'</b></span></div>'
-        +'<div class="tk-row"><span class="tk-lab">Nama Pemancing</span><span class="tk-col">:</span><span class="tk-val">'+esc(s.pemancing)+'</span></div>'
-        +'<div class="tk-row"><span class="tk-lab">Nama Operator</span><span class="tk-col">:</span><span class="tk-val">'+fill(op)+'</span></div>'
-        +'<div class="tk-row"><span class="tk-lab">Kolam</span><span class="tk-col">:</span><span class="tk-val">'+esc(k?k.nama:(s.kolamNama||'-'))+(k&&k.jenis?' — '+esc(k.jenis):'')+'</span></div>'
-        +'<div class="tk-note">'+(s.tangkapan?'🐟 Hasil Tangkapan: <b>'+esc(fmtTangkapan(s.tangkapan))+'</b><br>':'')+(s.catatan?'📝 '+esc(s.catatan)+'<br>':'')+'Scan QR di kanan untuk pantau sisa waktu real-time di HP · Selamat memancing! 🎣</div>'
-      +'</div>'
-    +'</div>'
-    +'<div class="tk-foot">'
-      +'<span>Tarif '+fmtRp(s.tarifJam)+'/jam</span>'
-      +'<span>Durasi tagih '+fmtDur(s.tagihMenit)+(s.basis==='terpakai'?' (terpakai)':s.basis==='pesanan'?' (pesanan)':'')+'</span>'
-      +'<span>TOTAL '+fmtRp(s.total)+'</span>'
-      +'<span class="tk-pay">'+(s.bayar&&s.bayar.status==='lunas'?'LUNAS':'BELUM LUNAS (BON)')+'</span>'
-    +'</div>'
-    +'<div class="tiket-stub">'
-      +'<i class="tk-notch top"></i><i class="tk-notch bot"></i>'
-      +'<div class="tk-qr-lbl">SCAN QR<br>CEK WAKTU</div>'
-      +'<div class="tk-qr-box">'+tkQrSvg(s.kode)+'</div>'
-      +'<div class="tk-kode">'+s.kode+'</div>'
-    +'</div>'
-    +'</div>';
-}
-window.openStruk=function(id){
-  const s=byId(id);
-  if(!s||s.status==='dibatalkan')return;
-  modal('<h3>🎟️ Pratinjau Tiket Sesi</h3><div class="modal-sub"><span class="mono">'+s.kode+'</span> · No. Pemancing '+pemNo(s)+' — Dilengkapi QR Code Login Otomatis</div>'
-    +'<div style="overflow-x:auto;padding:8px 2px;background:var(--surface-2);border-radius:12px;border:1px solid var(--line)">'+tiketHTML(s)+'</div>'
-    +'<div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Tutup</button>'
-    +'<button class="btn btn-primary" onclick="doPrint(\''+s.id+'\')">🖨️ Cetak Tiket Sekarang</button></div>',true);
-};
-window.doPrint=function(id){
-  const s=byId(id);
-  if(!s)return;
-  $('#printRoot').innerHTML=tiketHTML(s);
-  try{window.print()}catch(e){toast('Fungsi cetak tidak tersedia di tampilan preview ini.','err')}
-};
-
-/* --- Detail Sesi --- */
-window.openDetail=function(id){
-  const s=byId(id);
-  if(!s)return;
-  const cls=s.status==='aktif'?timerClass(s):'';
-  const rows=[
-    ['Status Sesi',statusBadge(s)],
-    ['Kolam / Spot',esc(kolamName(s.kolamId))],
-    ['Nomor Pemancing','<span class="no-chip big">No. '+pemNo(s)+'</span>'],
-    ['Nama Pemancing',esc(s.pemancing)],
-    ['Operator / Kasir',esc((s.operator||'').trim()||db.settings.operatorName||'Kasir')],
-    ['Tarif Berlaku',fmtRp(s.tarifJam)+'/jam'],
-    ['Waktu Mulai',tglPanjang(s.mulai).split(',')[0]+', '+jamMenit(s.mulai)],
-    ['Waktu Selesai',s.status==='aktif'?'<span class="timer-inline '+cls+'" data-timer="'+s.id+'">'+timerText(s)+'</span> sisa':(s.status==='selesai'?jamMenit(s.selesai):'-')],
-    ['Durasi Pesanan',fmtDur(s.durasiMenit)],
-    ['Durasi Terpakai',fmtDur(Math.max(1,Math.ceil(elapsedMs(s)/MIN)))],
-    ['Dasar Tagihan',s.basis==='terpakai'?'Sesuai waktu terpakai':s.basis==='pesanan'?'Sesuai pesanan':'-'],
-    ['Durasi Ditagih',fmtDur(s.tagihMenit)],
-    ['Total Tagihan','<span class="money">'+fmtRp(s.total)+'</span>'],
-    ['Status Pembayaran',(s.bayar&&s.bayar.status==='lunas'?'Lunas tunai'+(s.bayar.waktu?' ('+jamMenit(s.bayar.waktu)+')':''):'Belum lunas (bon)')],
-    ['Hasil Tangkapan',s.tangkapan?'🐟 '+esc(fmtTangkapan(s.tangkapan)):'-']
-  ];
-  modal('<h3>📄 Detail Transaksi Sesi</h3><div class="modal-sub"><span class="mono">'+s.kode+'</span>'+(s.catatan?' · 📝 '+esc(s.catatan):'')+'</div>'
-    +'<div class="detail-grid">'+rows.map(r=>'<div><div class="k">'+r[0]+'</div><div class="v">'+r[1]+'</div></div>').join('')+'</div>'
-    +'<div class="modal-actions">'
-    +(s.status==='aktif'?'<button class="btn btn-ghost" onclick="openExtend(\''+s.id+'\')">⏩ Perpanjang</button><button class="btn btn-danger" onclick="openStopFromDetail(\''+s.id+'\')">⏹ Akhiri Sesi</button>':'')
-    +(s.status!=='dibatalkan'&&(!s.bayar||s.bayar.status==='belum')?'<button class="btn btn-primary" onclick="openBayar(\''+s.id+'\')">💵 Terima Bayar</button>':'')
-    +(s.status==='aktif'?'<button class="btn btn-danger" onclick="batalkanSesi(\''+s.id+'\')">Batalkan Sesi</button>':'')
-    +(s.status!=='dibatalkan'?'<button class="btn btn-ghost" onclick="openStruk(\''+s.id+'\')">🎟️ Tiket</button>':'')
-    +'<button class="btn btn-ghost" onclick="closeModal()">Tutup</button></div>',true);
-};
-window.openStopFromDetail=function(id){closeModal();openStop(id)};
-window.batalkanSesi=function(id){
-  const s=byId(id);
-  if(!s||s.status!=='aktif')return;
-  confirmDlg('Batalkan sesi '+s.kode+' atas nama '+esc(s.pemancing)+'? Tagihan akan dinolkan menjadi Rp 0.','Batalkan Sesi',async function(){
-    try{
-      await updateDoc(doc(fsDb,'sessions',s.id),{status:'dibatalkan',selesai:Date.now(),basis:null,tagihMenit:0,total:0});
-      closeModal();toast('Sesi '+s.kode+' telah dibatalkan.','ok');
-    }catch(e){toast('Gagal membatalkan sesi: '+e.message,'err')}
-  });
-};
-
-/* --- Form Kolam --- */
-window.openKolamForm=function(id){
-  const k=id?kolamById(id):null;
-  window._kolamEdit=id||'';
-  modal('<h3>'+(k?'✏️ Edit Data Kolam':'➕ Tambah Spot Kolam')+'</h3><div class="modal-sub">Tarif per jam digunakan sebagai dasar perhitungan kelipatan 30 menit.</div>'
-    +'<div class="field"><label>Nama Kolam</label><input id="kNama" value="'+(k?esc(k.nama):'')+'" placeholder="Contoh: Kolam Barat"></div>'
-    +'<div class="field"><label>Kategori / Jenis Ikan</label><input id="kJenis" value="'+(k?esc(k.jenis):'')+'" placeholder="Contoh: Ikan mas &amp; bawal"></div>'
-    +'<div class="field"><label>Tarif per Jam (Rp)</label><input id="kTarif" type="number" min="0" step="500" value="'+(k?k.tarif:db.settings.tarifDefault)+'"></div>'
-    +'<div class="field"><label>Deskripsi Fasilitas</label><textarea id="kDesc" rows="2" placeholder="Contoh: Luas 800 m², kedalaman 1,5 m, dilengkapi saung">'+(k?esc(k.deskripsi):'')+'</textarea></div>'
-    +'<div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Batal</button>'
-    +'<button class="btn btn-primary" onclick="saveKolam()">Simpan Kolam</button></div>');
-};
-window.saveKolam=async function(){
-  const nama=$('#kNama').value.trim();
-  const tarif=parseInt($('#kTarif').value,10);
-  if(!nama){toast('Nama kolam wajib diisi.','err');return}
-  if(isNaN(tarif)||tarif<=0){toast('Tarif per jam harus lebih dari Rp 0.','err');return}
-  const data={nama:nama,jenis:$('#kJenis').value.trim()||'Ikan tawar',tarif:tarif,deskripsi:$('#kDesc').value.trim()};
-  try{
-    if(window._kolamEdit){
-      await updateDoc(doc(fsDb,'kolams',window._kolamEdit),data);
-      toast('Data '+data.nama+' diperbarui.','ok');
-    }else{
-      const newId='k'+Date.now();
-      await setDoc(doc(fsDb,'kolams',newId),{status:'aktif',...data});
-      toast('Spot '+data.nama+' berhasil ditambahkan.','ok');
-    }
-    closeModal();
-  }catch(e){toast('Gagal menyimpan kolam: '+e.message,'err')}
-};
-
-/* --- Panduan --- */
-window.openHelp=function(){
-  modal('<h3>❓ Panduan Penggunaan Sistem</h3><div class="modal-sub">Arsitektur Cloud Firebase + GitHub Pages</div>'
-    +'<div style="display:flex;flex-direction:column;gap:12px;font-size:13.5px;color:var(--ink-2)">'
-    +'<div class="card card-pad" style="padding:14px;background:var(--surface-2)"><b>1. Masuk Menggunakan Scan QR / Barcode</b><br>'
-    +'• Setiap tiket yang dicetak otomatis memiliki <b>QR Code</b> di bagian kanan.<br>'
-    +'• Pemancing cukup mengarahkan kamera HP bawaan ke QR Code (atau klik tombol <b>Scan QR / Barcode Tiket</b> di Portal Pemancing) untuk langsung melihat sisa waktu &amp; tagihannya.</div>'
-    +'<div class="card card-pad" style="padding:14px;background:var(--surface-2)"><b>2. Aturan Perhitungan Billing</b><br>'
-    +'• Durasi sewa minimal <b>30 menit</b> dengan kelipatan 30 menit.<br>'
-    +'• Indikator timer berubah menjadi <b>kuning</b> saat sisa waktu ≤ 10 menit dan <b>merah (+)</b> saat melewati batas waktu.</div>'
-    +'</div>'
-    +'<div class="modal-actions"><button class="btn btn-primary" onclick="closeModal()">Mengerti</button></div>');
-};
-
-/* ================= INISIALISASI FIREBASE AUTH ================= */
-let fsApp=null, fsAuth=null, fsDb=null;
-const cfg=window.FIREBASE_CONFIG;
-
-document.addEventListener('keydown',function(e){if(e.key==='Escape')closeModal()});
-document.querySelectorAll('.demo-chip').forEach(function(b){
-  b.addEventListener('click',function(){
-    $('#inUser').value=b.getAttribute('data-u');
-    $('#loginErr').classList.add('hidden');
-    $('#inPass').focus();
-  });
-});
-
-if(!cfg||!cfg.apiKey||cfg.apiKey.includes('GANTI_DENGAN')){
-  $('#configWarn').classList.remove('hidden');
-}else{
-  fsApp=initializeApp(cfg);
-  fsAuth=getAuth(fsApp);
-  fsDb=getFirestore(fsApp);
-
-  onAuthStateChanged(fsAuth,(user)=>{
-    if(user){
-      const email=(user.email||'').toLowerCase();
-      const map=window.STAFF_ROLES||{};
-      const roleInfo=map[email]||{role:'kasir',label:'Kasir'};
-      me={uid:user.uid,email:email,role:roleInfo.role,label:roleInfo.label};
-      enterApp();
-    }else if(me){
-      logout();
-    }
+  document.querySelectorAll('[data-prog]').forEach(el => {
+    const s = state.sessions.find(x => x.id === el.getAttribute('data-prog'));
+    if (!s || s.status !== 'aktif') return;
+    const bar = el.querySelector('i');
+    if (bar) bar.style.width = Math.min(100, Math.max(0, elapsedMs(s) / ((s.durasiMenit || 30) * MIN) * 100)) + '%';
+    const cls = timerClass(s);
+    el.className = 'prog' + (cls === 'ok' ? '' : ' ' + cls);
   });
 }
 
-$('#loginForm').addEventListener('submit',async function(e){
-  e.preventDefault();
-  if(!fsAuth){
-    $('#loginErr').textContent='Konfigurasi Firebase belum diisi di firebase-config.js.';
-    $('#loginErr').classList.remove('hidden');
+/* ================= SCANNER KAMERA QR & BARCODE ================= */
+function stopScanner() {
+  if (scanRaf) { cancelAnimationFrame(scanRaf); scanRaf = null; }
+  if (scanStream) {
+    scanStream.getTracks().forEach(t => t.stop());
+    scanStream = null;
+  }
+  scanDetector = null;
+}
+
+window.closeScanner = function() {
+  stopScanner();
+  $('#modalRoot').innerHTML = '';
+};
+
+window.openScanner = async function() {
+  $('#modalRoot').innerHTML =
+    '<div class="modal-overlay" onclick="if(event.target===this)closeScanner()">'
+      + '<div class="modal">'
+        + '<h3>📷 Scan QR / Barcode Tiket</h3>'
+        + '<div class="modal-sub">Arahkan kamera ke kode QR atau barcode pada tiket memancing.</div>'
+        + '<div class="cam-box"><video id="camVideo" playsinline muted autoplay></video><div class="cam-frame"></div></div>'
+        + '<div id="camStatus" class="cam-status">⏳ Menyalakan kamera...</div>'
+        + '<div class="modal-actions"><button type="button" class="btn btn-ghost" onclick="closeScanner()">Tutup</button></div>'
+      + '</div>'
+    + '</div>';
+
+  const video = $('#camVideo');
+  const statusEl = $('#camStatus');
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    statusEl.textContent = '⚠️ Browser tidak mendukung akses kamera. Silakan ketik kode tiket secara manual.';
     return;
   }
-  const email=$('#inUser').value.trim();
-  const pass=$('#inPass').value;
-  const btn=$('#btnLogin');
-  btn.disabled=true;
-  btn.textContent='Memverifikasi...';
-  $('#loginErr').classList.add('hidden');
-  try{
-    await signInWithEmailAndPassword(fsAuth,email,pass);
-    $('#inPass').value='';
-  }catch(err){
-    console.error(err);
-    $('#loginErr').textContent='Login gagal ('+(err.code||'error')+'): '+(err.message||'periksa email & password.');
-    $('#loginErr').classList.remove('hidden');
-  }finally{
-    btn.disabled=false;
-    btn.textContent='Masuk ke Sistem';
+
+  try {
+    scanStream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: { ideal: 'environment' } },
+      audio: false
+    });
+    video.srcObject = scanStream;
+    await video.play();
+
+    if ('BarcodeDetector' in window) {
+      try {
+        scanDetector = new BarcodeDetector({ formats: ['qr_code', 'code_128', 'code_39', 'ean_13', 'ean_8'] });
+      } catch (e) {
+        scanDetector = null;
+      }
+    }
+
+    statusEl.textContent = '🔍 Kamera aktif — arahkan ke QR Code atau barcode tiket.';
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+    const loop = async () => {
+      if (!scanStream || !video) return;
+      if (video.readyState === video.HAVE_ENOUGH_DATA) {
+        let detectedText = '';
+        if (scanDetector) {
+          try {
+            const codes = await scanDetector.detect(video);
+            if (codes && codes.length && codes[0].rawValue) {
+              detectedText = codes[0].rawValue;
+            }
+          } catch (e) {}
+        }
+        if (!detectedText && typeof jsQR === 'function') {
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          if (canvas.width && canvas.height) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const img = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const qrRes = jsQR(img.data, img.width, img.height);
+            if (qrRes && qrRes.data) detectedText = qrRes.data;
+          }
+        }
+        if (detectedText) {
+          const found = findSessionByInput(detectedText);
+          if (found) {
+            closeScanner();
+            openTicketByCode(found.kode, false);
+            return;
+          } else {
+            statusEl.textContent = '⚠️ Terbaca "' + esc(detectedText) + '", namun tidak cocok dengan sesi mana pun.';
+          }
+        }
+      }
+      scanRaf = requestAnimationFrame(loop);
+    };
+    scanRaf = requestAnimationFrame(loop);
+  } catch (err) {
+    statusEl.textContent = '⚠️ Izin kamera ditolak atau tidak tersedia (' + (err.message || 'error') + ').';
   }
+};
+
+$('#codeForm').addEventListener('submit', e => {
+  e.preventDefault();
+  openTicketByCode($('#codeInput').value, false);
 });
+
+/* ================= INISIALISASI FIREBASE REAL-TIME ================= */
+const cfg = window.FIREBASE_CONFIG;
+if (!cfg || !cfg.apiKey || cfg.apiKey.includes('GANTI_DENGAN')) {
+  $('#configWarn').classList.remove('hidden');
+} else {
+  const app = initializeApp(cfg);
+  const db = getFirestore(app);
+
+  onSnapshot(doc(db, 'settings', 'main'), snap => {
+    if (snap.exists()) Object.assign(state.settings, snap.data());
+    render();
+  });
+
+  onSnapshot(collection(db, 'kolams'), snap => {
+    state.kolams = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    render();
+  });
+
+  onSnapshot(collection(db, 'sessions'), snap => {
+    state.sessions = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    state.ready = true;
+    render();
+
+    const urlKode = new URLSearchParams(window.location.search).get('kode');
+    if (urlKode && !state.selectedId) {
+      openTicketByCode(urlKode, true);
+    }
+  });
+}
+
+ticker = setInterval(tick, 1000);
+tick();
 </script>
 </body>
 </html>
