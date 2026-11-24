@@ -848,7 +848,7 @@ const NAV={
 };
 function buildNav(){
   const roleLabel=me.role==='admin'?'Menu Administrator':'Menu Operasional';
-  $('#nav').innerHTML='<div class="nav-label">'+roleLabel+'</div>'+NAV[me.role].map(n=>'<button data-v="'+n[0]+'" class="'+(view===n[0]?'active':'')+'" onclick="go(''+n[0]+'')"><span class="nav-ico">'+n[1]+'</span><span>'+n[2]+'</span></button>').join('');
+  $('#nav').innerHTML='<div class="nav-label">'+roleLabel+'</div>'+NAV[me.role].map(n=>'<button data-v="'+n[0]+'" class="'+(view===n[0]?'active':'')+'" onclick="go(\''+n[0]+'\')"><span class="nav-ico">'+n[1]+'</span><span>'+n[2]+'</span></button>').join('');
 }
 window.go=function(v){view=v;buildNav();render()};
 function syncBranding(){
@@ -971,7 +971,7 @@ function kolamCard(k){
   }else if(!s){
     stateCls='is-avail';
     body='<div><span class="badge outline-green">● Spot Tersedia</span><div class="kolam-sub" style="margin-top:8px">'+esc(k.deskripsi)+'</div></div>'
-      +'<button class="btn btn-primary btn-block" onclick="openStart(''+k.id+'')">▶ Mulai Sesi Baru</button>';
+      +'<button class="btn btn-primary btn-block" onclick="openStart(\''+k.id+'\')">▶ Mulai Sesi Baru</button>';
   }else{
     const cls=timerClass(s);
     stateCls=cls==='over'?'is-over':cls==='warn'?'is-warn':'is-active';
@@ -986,9 +986,9 @@ function kolamCard(k){
       +(alert||'')
       +'<div class="kolam-meta"><span class="kolam-sub">Total Tagihan</span><b class="money" style="font-size:15px">'+fmtRp(s.total)+'</b></div>'
       +'<div class="kolam-actions">'
-      +'<button class="btn btn-ghost btn-sm" onclick="openExtend(''+s.id+'')">⏩ Perpanjang</button>'
-      +'<button class="btn btn-danger btn-sm" onclick="openStop(''+s.id+'')">⏹ Akhiri</button>'
-      +(s.bayar&&s.bayar.status==='belum'?'<button class="btn btn-primary btn-sm" onclick="openBayar(''+s.id+'')">💵 Bayar</button><button class="btn btn-ghost btn-sm" onclick="openStruk(''+s.id+'')">🎟️ Tiket</button>':'<button class="btn btn-ghost btn-sm span2" onclick="openStruk(''+s.id+'')">🎟️ Cetak Tiket</button>')
+      +'<button class="btn btn-ghost btn-sm" onclick="openExtend(\''+s.id+'\')">⏩ Perpanjang</button>'
+      +'<button class="btn btn-danger btn-sm" onclick="openStop(\''+s.id+'\')">⏹ Akhiri</button>'
+      +(s.bayar&&s.bayar.status==='belum'?'<button class="btn btn-primary btn-sm" onclick="openBayar(\''+s.id+'\')">💵 Bayar</button><button class="btn btn-ghost btn-sm" onclick="openStruk(\''+s.id+'\')">🎟️ Tiket</button>':'<button class="btn btn-ghost btn-sm span2" onclick="openStruk(\''+s.id+'\')">🎟️ Cetak Tiket</button>')
       +'</div>';
   }
   return '<div class="card kolam-card '+stateCls+'">'+head+body+'</div>';
@@ -1024,13 +1024,13 @@ function vMonitor(){
     return '<tr><td><div class="cell-main mono">'+s.kode+'</div></td><td>'+esc(kolamName(s.kolamId))+'</td><td><span class="no-chip">No. '+pemNo(s)+'</span><b>'+esc(s.pemancing)+'</b></td><td>'+jamMenit(s.mulai)+'</td>'
       +'<td><span class="timer-inline '+cls+'" data-timer="'+s.id+'">'+timerText(s)+'</span></td>'
       +'<td><b class="money">'+fmtRp(s.total)+'</b></td><td>'+payBadge(s)+'</td>'
-      +'<td><button class="btn btn-ghost btn-sm" onclick="openDetail(''+s.id+'')">Detail</button></td></tr>';
+      +'<td><button class="btn btn-ghost btn-sm" onclick="openDetail(\''+s.id+'\')">Detail</button></td></tr>';
   }).join('');
 
   const rowsDone=done.map(s=>
     '<tr><td><div class="cell-main mono">'+s.kode+'</div><div class="cell-sub">selesai '+jamMenit(s.selesai)+'</div></td><td>'+esc(kolamName(s.kolamId))+'</td><td><span class="no-chip">No. '+pemNo(s)+'</span><b>'+esc(s.pemancing)+'</b></td>'
     +'<td>'+fmtDur(s.tagihMenit)+'</td><td>'+(s.tangkapan?'<span class="badge outline-green">🐟 '+esc(fmtTangkapan(s.tangkapan))+'</span>':'<span class="cell-sub">-</span>')+'</td><td><b class="money">'+fmtRp(s.total)+'</b></td><td>'+payBadge(s)+'</td>'
-    +'<td><button class="btn btn-ghost btn-sm" onclick="openStruk(''+s.id+'')">🎟️ Tiket</button></td></tr>').join('');
+    +'<td><button class="btn btn-ghost btn-sm" onclick="openStruk(\''+s.id+'\')">🎟️ Tiket</button></td></tr>').join('');
 
   const chips=db.kolams.map(k=>{
     const occ=activeByKolam(k.id);
@@ -1061,9 +1061,9 @@ function vKolamAdmin(){
       +'<td>'+esc(k.jenis)+'</td><td><b class="money">'+fmtRp(k.tarif)+'</b>/jam</td>'
       +'<td>'+(k.status==='maintenance'?'<span class="badge gray">🔧 Perawatan</span>':'<span class="badge green">● Aktif</span>')+'</td>'
       +'<td>'+(occ?'<span class="no-chip">No. '+pemNo(occ)+'</span>'+esc(occ.pemancing):'<span class="cell-sub">Kosong</span>')+'</td>'
-      +'<td><div class="row-gap"><button class="btn btn-ghost btn-sm" onclick="openKolamForm(''+k.id+'')">Edit</button>'
-      +'<button class="btn btn-ghost btn-sm" onclick="toggleKolam(''+k.id+'')">'+(k.status==='maintenance'?'Aktifkan':'Set Perawatan')+'</button>'
-      +'<button class="btn btn-danger btn-sm" onclick="hapusKolam(''+k.id+'')">Hapus</button>'
+      +'<td><div class="row-gap"><button class="btn btn-ghost btn-sm" onclick="openKolamForm(\''+k.id+'\')">Edit</button>'
+      +'<button class="btn btn-ghost btn-sm" onclick="toggleKolam(\''+k.id+'\')">'+(k.status==='maintenance'?'Aktifkan':'Set Perawatan')+'</button>'
+      +'<button class="btn btn-danger btn-sm" onclick="hapusKolam(\''+k.id+'\')">Hapus</button>'
       +'</div></td></tr>';
   }).join('');
   return '<div class="page-head"><div><h2>Kelola Kolam &amp; Tarif</h2><div class="sub">Atur daftar spot kolam, tarif per jam, dan status operasional di cloud.</div></div>'
@@ -1099,13 +1099,13 @@ function vRiwayat(){
     '<tr><td><div class="cell-main mono">'+s.kode+'</div><div class="cell-sub">'+jamMenit(s.mulai)+'</div></td>'
     +'<td>'+esc(kolamName(s.kolamId))+'</td><td><span class="no-chip">No. '+pemNo(s)+'</span><b>'+esc(s.pemancing)+'</b></td><td>'+statusBadge(s)+'</td>'
     +'<td>'+fmtDur(s.tagihMenit)+'</td><td>'+(s.tangkapan?'<span class="badge outline-green">🐟 '+esc(fmtTangkapan(s.tangkapan))+'</span>':'<span class="cell-sub">-</span>')+'</td><td><b class="money">'+fmtRp(s.total)+'</b></td><td>'+payBadge(s)+'</td>'
-    +'<td><button class="btn btn-ghost btn-sm" onclick="openDetail(''+s.id+'')">Detail</button></td></tr>').join('');
+    +'<td><button class="btn btn-ghost btn-sm" onclick="openDetail(\''+s.id+'\')">Detail</button></td></tr>').join('');
   const sel=(v,l)=>'<option value="'+v+'"'+(f.status===v?' selected':'')+'>'+l+'</option>';
   return '<div class="page-head"><div><h2>'+(isAdmin?'Riwayat Sesi':'Riwayat Transaksi')+'</h2><div class="sub">Menampilkan <b>'+list.length+'</b> sesi · Akumulasi tagihan <b class="money">'+fmtRp(tot)+'</b>'+(totEkor||totKg?' · Total tangkapan <b>'+totEkor+' ekor ('+totKg.toFixed(2).replace('.',',')+' kg)</b>':'')+'</div></div></div>'
     +'<div class="filter-bar">'
-    +'<div class="field"><label>Tanggal</label><input type="date" value="'+fTanggal+'" onchange="setFilter('tanggal',this.value)"></div>'
-    +'<div class="field"><label>Status Sesi</label><select onchange="setFilter('status',this.value)">'+sel('','Semua Status')+sel('aktif','Sedang Berjalan')+sel('selesai','Selesai')+sel('dibatalkan','Dibatalkan')+'</select></div>'
-    +'<div class="field grow"><label>Pencarian (Tekan Enter)</label><input value="'+esc(f.cari)+'" onchange="setFilter('cari',this.value)" placeholder="Cari pemancing, kode tiket, kolam, atau jenis ikan..."></div>'
+    +'<div class="field"><label>Tanggal</label><input type="date" value="'+fTanggal+'" onchange="setFilter(\'tanggal\',this.value)"></div>'
+    +'<div class="field"><label>Status Sesi</label><select onchange="setFilter(\'status\',this.value)">'+sel('','Semua Status')+sel('aktif','Sedang Berjalan')+sel('selesai','Selesai')+sel('dibatalkan','Dibatalkan')+'</select></div>'
+    +'<div class="field grow"><label>Pencarian (Tekan Enter)</label><input value="'+esc(f.cari)+'" onchange="setFilter(\'cari\',this.value)" placeholder="Cari pemancing, kode tiket, kolam, atau jenis ikan..."></div>'
     +'<div class="field"><label>&nbsp;</label><button class="btn btn-ghost" onclick="resetFilter()">Reset Filter</button></div>'
     +'</div>'
     +(list.length?'<div class="table-scroll"><table><thead><tr><th>Kode Sesi</th><th>Kolam</th><th>Pemancing</th><th>Status</th><th>Durasi Tagih</th><th>Tangkapan</th><th>Total</th><th>Pembayaran</th><th>Aksi</th></tr></thead><tbody>'+rows+'</tbody></table></div>':'<div class="card card-pad"><p class="empty">Tidak ditemukan riwayat sesi yang sesuai dengan kriteria filter.</p></div>');
@@ -1287,9 +1287,9 @@ function vLaporan(){
     +'</div></div>'
     +'<div class="filter-bar">'
     +'<div class="field"><label>Periode Laporan</label><div class="chip-row">'
-    +'<button type="button" class="chip'+(d.mode==='harian'?' on':'')+'" onclick="setLaporanMode('harian')">📅 Harian</button>'
-    +'<button type="button" class="chip'+(d.mode==='mingguan'?' on':'')+'" onclick="setLaporanMode('mingguan')">📆 Mingguan</button>'
-    +'<button type="button" class="chip'+(d.mode==='bulanan'?' on':'')+'" onclick="setLaporanMode('bulanan')">🗓️ Bulanan</button>'
+    +'<button type="button" class="chip'+(d.mode==='harian'?' on':'')+'" onclick="setLaporanMode(\'harian\')">📅 Harian</button>'
+    +'<button type="button" class="chip'+(d.mode==='mingguan'?' on':'')+'" onclick="setLaporanMode(\'mingguan\')">📆 Mingguan</button>'
+    +'<button type="button" class="chip'+(d.mode==='bulanan'?' on':'')+'" onclick="setLaporanMode(\'bulanan\')">🗓️ Bulanan</button>'
     +'</div></div>'
     +pickerHTML
     +'</div>'
@@ -1627,8 +1627,8 @@ window.openStop=function(id){
     +'<div class="field" style="margin-bottom:0"><label>Ukuran / Berat (KG)</label><input id="fIkanBerat" type="number" min="0" step="0.01" placeholder="0.00"></div>'
     +'</div></div>'
     +'<div class="field"><label>Pilih Dasar Perhitungan Tagihan</label>'
-    +'<div class="opt-card'+(stopBasis==='pesanan'?' on':'')+'" id="optPesanan" onclick="pickStop('pesanan')"><div class="t"><span>Sesuai Paket Pesanan</span><span class="money">'+fmtRp(s.total)+'</span></div><div class="d">Ditagih penuh sesuai durasi awal yang dipesan ('+fmtDur(s.durasiMenit)+').</div></div>'
-    +'<div class="opt-card'+(stopBasis==='terpakai'?' on':'')+'" id="optTerpakai" onclick="pickStop('terpakai')"><div class="t"><span>Sesuai Waktu Terpakai</span><span class="money">'+fmtRp(priceOf(s.tarifJam,used))+'</span></div><div class="d">Pembulatan ke atas per 30 menit (minimal 30 menit) = '+fmtDur(used)+'.</div></div>'
+    +'<div class="opt-card'+(stopBasis==='pesanan'?' on':'')+'" id="optPesanan" onclick="pickStop(\'pesanan\')"><div class="t"><span>Sesuai Paket Pesanan</span><span class="money">'+fmtRp(s.total)+'</span></div><div class="d">Ditagih penuh sesuai durasi awal yang dipesan ('+fmtDur(s.durasiMenit)+').</div></div>'
+    +'<div class="opt-card'+(stopBasis==='terpakai'?' on':'')+'" id="optTerpakai" onclick="pickStop(\'terpakai\')"><div class="t"><span>Sesuai Waktu Terpakai</span><span class="money">'+fmtRp(priceOf(s.tarifJam,used))+'</span></div><div class="d">Pembulatan ke atas per 30 menit (minimal 30 menit) = '+fmtDur(used)+'.</div></div>'
     +'</div>'
     +'<div class="modal-actions">'
     +'<button class="btn btn-ghost" onclick="closeModal()">Batal</button>'
@@ -1780,7 +1780,7 @@ window.openStruk=function(id){
   modal('<h3>🎟️ Pratinjau Tiket Sesi</h3><div class="modal-sub"><span class="mono">'+s.kode+'</span> · No. Pemancing '+pemNo(s)+' — Format strip 21 × 6 cm (A4 Portrait)</div>'
     +'<div style="overflow-x:auto;padding:8px 2px;background:var(--surface-2);border-radius:12px;border:1px solid var(--line)">'+tiketHTML(s)+'</div>'
     +'<div class="modal-actions"><button class="btn btn-ghost" onclick="closeModal()">Tutup</button>'
-    +'<button class="btn btn-primary" onclick="doPrint(''+s.id+'')">🖨️ Cetak Tiket Sekarang</button></div>',true);
+    +'<button class="btn btn-primary" onclick="doPrint(\''+s.id+'\')">🖨️ Cetak Tiket Sekarang</button></div>',true);
 };
 window.doPrint=function(id){
   const s=byId(id);
@@ -1814,10 +1814,10 @@ window.openDetail=function(id){
   modal('<h3>📄 Detail Transaksi Sesi</h3><div class="modal-sub"><span class="mono">'+s.kode+'</span>'+(s.catatan?' · 📝 '+esc(s.catatan):'')+'</div>'
     +'<div class="detail-grid">'+rows.map(r=>'<div><div class="k">'+r[0]+'</div><div class="v">'+r[1]+'</div></div>').join('')+'</div>'
     +'<div class="modal-actions">'
-    +(s.status==='aktif'?'<button class="btn btn-ghost" onclick="openExtend(''+s.id+'')">⏩ Perpanjang</button><button class="btn btn-danger" onclick="openStopFromDetail(''+s.id+'')">⏹ Akhiri Sesi</button>':'')
-    +(s.status!=='dibatalkan'&&(!s.bayar||s.bayar.status==='belum')?'<button class="btn btn-primary" onclick="openBayar(''+s.id+'')">💵 Terima Bayar</button>':'')
-    +(s.status==='aktif'?'<button class="btn btn-danger" onclick="batalkanSesi(''+s.id+'')">Batalkan Sesi</button>':'')
-    +(s.status!=='dibatalkan'?'<button class="btn btn-ghost" onclick="openStruk(''+s.id+'')">🎟️ Tiket</button>':'')
+    +(s.status==='aktif'?'<button class="btn btn-ghost" onclick="openExtend(\''+s.id+'\')">⏩ Perpanjang</button><button class="btn btn-danger" onclick="openStopFromDetail(\''+s.id+'\')">⏹ Akhiri Sesi</button>':'')
+    +(s.status!=='dibatalkan'&&(!s.bayar||s.bayar.status==='belum')?'<button class="btn btn-primary" onclick="openBayar(\''+s.id+'\')">💵 Terima Bayar</button>':'')
+    +(s.status==='aktif'?'<button class="btn btn-danger" onclick="batalkanSesi(\''+s.id+'\')">Batalkan Sesi</button>':'')
+    +(s.status!=='dibatalkan'?'<button class="btn btn-ghost" onclick="openStruk(\''+s.id+'\')">🎟️ Tiket</button>':'')
     +'<button class="btn btn-ghost" onclick="closeModal()">Tutup</button></div>',true);
 };
 window.openStopFromDetail=function(id){closeModal();openStop(id)};
@@ -1930,7 +1930,7 @@ $('#loginForm').addEventListener('submit',async function(e){
     $('#inPass').value='';
   }catch(err){
     console.error(err);
-    $('#loginErr').textContent='Login gagal: pastikan email & password sudah terdaftar di Firebase Authentication.';
+    $('#loginErr').textContent='Login gagal ('+(err.code||'error')+'): '+(err.message||'periksa email & password.');
     $('#loginErr').classList.remove('hidden');
   }finally{
     btn.disabled=false;
